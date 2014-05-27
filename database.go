@@ -50,6 +50,43 @@ func NewDatabase(name string,host string,username string,password string) (*Data
   return &db,nil
 }
 
+func (d *Database) Execute(q *Query) (*Cursor,error){
+  if q == nil{
+    return nil,errors.New("Cannot execute nil query")
+  }else{
+    // check if I need to validate query
+    if q.Validate {
+      if !d.IsValid(q) {
+        return nil,errors.New(q.ErrorMsg)
+      }
+    }
+    // create cursor
+    c := NewCursor(d)
+    _, err := d.send("cursor","","POST",q,c,c)
+    if err != nil {
+      return nil,err
+    }
+    return c,nil
+  }
+}
+
+func (d *Database) IsValid(q *Query) bool {
+  if q != nil {
+    res, err := d.send("query","","POST",map[string]string{ "query" : q.Aql },q,q)
+    if err != nil {
+      return false
+    }
+    if res.Status() == 200 {
+      return true
+    }else{
+      // could check error into query
+      return false
+    }
+  }else{
+    return false
+  }
+}
+
 // Do a request to test if the database is up or usern authorized to use it
 func (d *Database) Ping() error{
   if d.Auth {
