@@ -8,6 +8,7 @@ type Document struct {
   Rev   string         `json:"_rev,omitempty" `
   Key   string         `json:"_key,omitempty" `
 
+  Error      bool       `json:"error,omitempty"`
   Message    string     `json:"errorMessage,omitempty"`
   Code       int        `json:"code,omitempty"`
   Num        int        `json:"errorNum,omitempty"`

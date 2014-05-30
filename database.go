@@ -70,6 +70,19 @@ func (d *Database) Execute(q *Query) (*Cursor,error){
   }
 }
 
+func (d *Database) ExecuteTran(t *Transaction,result interface{}) error {
+  if t.Action == "" {
+    return errors.New("Action must not be nil")
+  }
+  _, err := d.send("transaction","","POST",t,t,t)
+
+  if err != nil {
+    return err
+  }
+
+  return nil
+}
+
 func (d *Database) IsValid(q *Query) bool {
   if q != nil {
     res, err := d.send("query","","POST",map[string]string{ "query" : q.Aql },q,q)
