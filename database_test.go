@@ -1,6 +1,7 @@
 package aranGO
 
 import (
+	"fmt"
 	"log"
 	"testing"
 	"time"
@@ -8,8 +9,56 @@ import (
 
 type TestDoc struct {
 	Document
-	Atr1 string `json:"at,omitempty"`
-	Int  int    `json:"int,omitempty"`
+	Atr1 string `json:"at,omitempty" enum:"A,M,S"`
+	Int  string `json:"int,omitempty" required:"-"`
+	Sub  SubDoc `json:"doc" sub:"-"`
+}
+
+type SubDoc struct {
+	Requi string `json:"q" required:"-"`
+}
+
+// implement modeler
+func (t *TestDoc) GetKey() string {
+	return t.Key
+}
+
+func (t *TestDoc) GetCollection() string {
+	return "trans"
+}
+
+func (t *TestDoc) GetError() (string, bool) {
+	return t.Message, t.Error
+}
+
+func (t *TestDoc) PreSave(err Error) {
+	fmt.Println("presave hook")
+	return
+}
+
+func (t *TestDoc) PostSave(err Error) {
+	fmt.Println("postsave hook")
+	return
+}
+
+func (t *TestDoc) PreUpdate(err Error) {
+	fmt.Println("preupdate hook")
+	return
+}
+
+func (t *TestDoc) PostUpdate(err Error) {
+	fmt.Println("post update hook")
+	return
+}
+
+func (t *TestDoc) PreDelete(err Error) {
+	fmt.Println("pre delete hook")
+	return
+}
+
+func (t *TestDoc) PostDelete(err Error) {
+	fmt.Println("post delete hook")
+	return
 }
 
 /*
@@ -117,29 +166,19 @@ func Test_T(t *testing.T) {
 	s, _ := Connect("http://localhost:8529", "diego", "test", false)
 	db := s.DB("test2")
 	var test TestDoc
-	test.Atr1 = "test"
-	test.Int = 1231
+	test.Atr1 = "A"
+	test.Int = "test2"
+	test.Sub.Requi = "miau"
+
+	t0 := time.Now()
+	log.Println(Save(db, &test))
 	t1 := time.Now()
-	err := db.Col("trans").Save(&test)
-	t2 := time.Now()
-	log.Println(t2.Sub(t1))
+	log.Println(test)
+	test.Atr1 = "M"
 
-	test.Int = 23
-	err = db.Col("trans").Replace(test.Key, &test)
+	log.Println(Save(db, &test))
 
-	test.Int = 1
-	err = db.Col("trans").Replace(test.Key, &test)
-
-	cur, _ := db.Col("trans").All(0, 1)
-	log.Println(cur.Result)
-
-	// check if it exist
-	log.Println(test.Document.Exist(db))
-
-	if err != nil {
-
-	}
-
+	log.Println(t1.Sub(t0))
 	/*
 		log.Println(db)
 		log.Println(db.Collections)
