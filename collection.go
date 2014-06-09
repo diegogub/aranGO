@@ -5,7 +5,6 @@ package aranGO
 import (
 	"errors"
 	nap "github.com/jmcvetta/napping"
-	"log"
 	"reflect"
 )
 
@@ -37,7 +36,7 @@ func (col *Collection) Save(doc interface{}) error {
 		return err
 	}
 
-	if res.Status() != 200 {
+	if res.Status() != 201 && res.Status() != 202 {
 		return errors.New("Unable to save document error")
 	}
 
@@ -58,8 +57,8 @@ func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("saving edge", res)
-	if res.Status() != 200 {
+
+	if res.Status() != 201 && res.Status() != 202 {
 		return errors.New("Unable to save document error")
 	}
 
@@ -258,13 +257,13 @@ func (c *Collection) First(example, doc interface{}) error {
 	res, err := c.db.send("simple", "first-example", "PUT", query, &doc, &doc)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if res.Status() == 200 {
-		return &cur, nil
+		return nil
 	} else {
-		return nil, errors.New("Failed to execute query")
+		return errors.New("Failed to execute query")
 	}
 
 }
