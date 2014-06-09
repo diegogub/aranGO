@@ -214,3 +214,57 @@ func reflectValue(obj interface{}) reflect.Value {
 
 	return val
 }
+
+// Simple Queries
+
+func (c *Collection) All(skip, limit int) (*Cursor, error) {
+	var cur Cursor
+	query := map[string]interface{}{"collection": c.Name, "skip": skip, "limit": limit}
+	// sernd request
+	res, err := c.db.send("simple", "all", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) {
+	var cur Cursor
+	query := map[string]interface{}{"collection": c.Name, "example": doc, "skip": skip, "limit": limit}
+	// sernd request
+	res, err := c.db.send("simple", "by-example", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+func (c *Collection) First(example, doc interface{}) error {
+	query := map[string]interface{}{"collection": c.Name, "example": doc}
+
+	// sernd request
+	res, err := c.db.send("simple", "first-example", "PUT", query, &doc, &doc)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 200 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+
+}
