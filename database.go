@@ -132,9 +132,11 @@ func (db Database) Col(name string) *Collection {
 	}
 
 	if !found {
-		// should I create the collection?
-		// TODO add option to create collection if not available
-		panic("Invalid Dbs")
+		if db.sess.Safe {
+			panic("Invalid collection " + name)
+		} else {
+
+		}
 		return nil
 	}
 	return &col

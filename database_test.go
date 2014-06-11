@@ -14,6 +14,11 @@ type TestDoc struct {
 	Sub  SubDoc `json:"doc" sub:"-"`
 }
 
+type Person struct {
+	Name string `json:"first_name"`
+	Sex  string `json:"sex"`
+}
+
 type SubDoc struct {
 	Requi string `json:"q" required:"-"`
 }
@@ -165,6 +170,7 @@ func NewCounter() *Counter {
 func Test_T(t *testing.T) {
 	s, _ := Connect("http://localhost:8529", "diego", "test", false)
 	db := s.DB("test2")
+	log.Println(s)
 	var test TestDoc
 	test.Atr1 = "A"
 	test.Int = "test2"
@@ -177,8 +183,19 @@ func Test_T(t *testing.T) {
 	test.Atr1 = "M"
 
 	log.Println(Save(db, &test))
-
+	c, _ := db.Col("trans").Example(map[string]string{"int": "test2"}, 0, 300)
+	log.Println(c.Amount)
 	log.Println(t1.Sub(t0))
+
+	var persons []Person
+
+	curs, err := db.Col("test").All(0, 30)
+	if err != nil {
+		panic(err)
+	}
+
+	curs.FetchBatch(&persons)
+	log.Println(persons)
 	/*
 		log.Println(db)
 		log.Println(db.Collections)
@@ -188,7 +205,7 @@ func Test_T(t *testing.T) {
 		co2 := NewCounter()
 		co2.Key = "tet"
 		co.Key = "counter"
-		t1 := time.Now()
+		t1 := time.Now(	)
 		db.Col("trans").Save(co2)
 		t2 := time.Now()
 		// Relate both counter

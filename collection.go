@@ -210,8 +210,30 @@ func reflectValue(obj interface{}) reflect.Value {
 	} else {
 		val = reflect.ValueOf(obj)
 	}
-
 	return val
+}
+
+// check if a key is unique or not
+func (c *Collection) Unique(key string, value interface{}, index string) (bool, error) {
+	var cur *Cursor
+	var err error
+	switch index {
+	case "hash":
+		// must implement other simple query function s
+	case "skip-list":
+
+	default:
+		cur, err = c.Example(map[string]interface{}{key: value}, 0, 2)
+	}
+	if err != nil {
+		return false, err
+	}
+
+	if cur.Amount > 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // Simple Queries
