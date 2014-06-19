@@ -8,15 +8,30 @@ import (
 	"reflect"
 )
 
+// options to create collection
+type CollectionOptions struct {
+	Name    string `json:"name"`
+	Type    uint   `json:"type"`
+	Sync    bool   `json:"waitForSync,omitempty"`
+	Compact bool   `json:"doCompact,omitempty"`
+	//Cannot create with custom journal? TODO
+	//JournalSize string                 `json:"journalSize,omitempty"`
+	System   bool                   `json:"isSystem,omitempty"`
+	Volatile bool                   `json:"isVolatile,omitempty"`
+	Keys     map[string]interface{} `json:"keyOptions,omitempty"`
+
+	// Cluster
+	Shards    int      `json:"numberOfShards,omitempty"`
+	ShardKeys []string `json:"shardKeys,omitempty"`
+}
+
 type Collection struct {
 	db     *Database `json:"db"`
 	Name   string    `json:"name"`
 	System bool      `json:"isSystem"`
 	Status int       `json:"status"`
 	// 3 = Edges , 2 =  Documents
-	Type int `json:"type"`
-
-	// last ,
+	Type     int    `json:"type"`
 	policy   string `json:"-"`
 	revision bool   `json:"-"`
 }
@@ -210,8 +225,30 @@ func reflectValue(obj interface{}) reflect.Value {
 	} else {
 		val = reflect.ValueOf(obj)
 	}
-
 	return val
+}
+
+// check if a key is unique or not
+func (c *Collection) Unique(key string, value interface{}, index string) (bool, error) {
+	var cur *Cursor
+	var err error
+	switch index {
+	case "hash":
+		// must implement other simple query function s
+	case "skip-list":
+
+	default:
+		cur, err = c.Example(map[string]interface{}{key: value}, 0, 2)
+	}
+	if err != nil {
+		return false, err
+	}
+
+	if cur.Amount > 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // Simple Queries

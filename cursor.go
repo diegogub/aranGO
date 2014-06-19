@@ -2,6 +2,8 @@ package aranGO
 
 import (
 	"encoding/json"
+	"errors"
+	"reflect"
 )
 
 type Cursor struct {
@@ -26,6 +28,24 @@ func NewCursor(db *Database) *Cursor {
 	}
 	c.db = db
 	return &c
+}
+
+func (c *Cursor) FetchBatch(r interface{}) error {
+	kind := reflect.ValueOf(r).Elem().Kind()
+	if kind != reflect.Slice && kind != reflect.Array {
+		return errors.New("Container must be Slice of array kind")
+	}
+	b, err := json.Marshal(c.Result)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(b, r)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Iterates over cursor, returns false when no more values into row, fetch next batch if necesary.
