@@ -3,6 +3,7 @@ package aranGO
 import (
 	"errors"
 	nap "github.com/jmcvetta/napping"
+  "time"
 )
 
 // Database
@@ -38,11 +39,20 @@ func (d *Database) ExecuteTran(t *Transaction) error {
 	if t.Action == "" {
 		return errors.New("Action must not be nil")
 	}
-	_, err := d.send("transaction", "", "POST", t, t, t)
+
+  // record execution time
+  t0 := time.Now()
+	resp, err := d.send("transaction", "", "POST", t, t, t)
+  t1 := time.Now()
+  t.Time = t1.Sub(t0)
 
 	if err != nil {
 		return err
 	}
+
+  if resp.Status() == 400 {
+    return errors.New("Error executing transaction")
+  }
 
 	return nil
 }
@@ -132,12 +142,54 @@ func (db Database) Col(name string) *Collection {
 	}
 
 	if !found {
-		if db.sess.Safe {
-			panic("Invalid collection " + name)
-		} else {
-
-		}
 		return nil
 	}
 	return &col
+}
+
+// Collection functions
+func (d *Database) CreateCollection(c *CollectionOptions) error {
+	if c.Name == "" {
+		return errors.New("Invalid collection name")
+	}
+	//check if exist
+	resp, err := d.get("collection", c.Name, "GET", nil, nil, nil)
+	if err != nil {
+		return err
+	}
+
+	if resp.Status() == 404 {
+		// try to create it
+		resp, err = d.send("collection", "", "POST", c, nil, nil)
+		if err != nil {
+			return err
+		}
+
+		if resp.Status() != 200 {
+			return errors.New("Cannot create collection, check options")
+		}
+
+		if resp.Status() == 200 {
+			return nil
+		}
+	}
+
+	return errors.New("collection exist")
+}
+
+func (d *Database) CheckCollection(name string) *CollectionOptions {
+	var col CollectionOptions
+	if name == "" {
+		return nil
+	}
+
+	resp, err := d.get("collection", name, "GET", nil, &col, &col)
+	if err != nil {
+		return nil
+	}
+
+	if resp.Status() == 200 {
+		return &col
+	}
+	return nil
 }

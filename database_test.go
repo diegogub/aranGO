@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"testing"
-	"time"
 )
 
 type TestDoc struct {
@@ -168,66 +167,75 @@ func NewCounter() *Counter {
 }
 
 func Test_T(t *testing.T) {
-	s, _ := Connect("http://localhost:8529", "diego", "test", false)
+	s, _ := Connect("http://localhost:8529", "diego", "test", true)
 	db := s.DB("test2")
 	log.Println(s)
-	var test TestDoc
-	test.Atr1 = "A"
-	test.Int = "test2"
-	test.Sub.Requi = "miau"
 
-	t0 := time.Now()
-	log.Println(Save(db, &test))
-	t1 := time.Now()
-	log.Println(test)
-	test.Atr1 = "M"
+	var opcol CollectionOptions
+	opcol.Name = "testpeasdassdas"
+	opcol.Sync = true
 
-	log.Println(Save(db, &test))
-	c, _ := db.Col("trans").Example(map[string]string{"int": "test2"}, 0, 300)
-	log.Println(c.Amount)
-	log.Println(t1.Sub(t0))
-
-	var persons []Person
-
-	curs, err := db.Col("test").All(0, 30)
-	if err != nil {
-		panic(err)
-	}
-
-	curs.FetchBatch(&persons)
-	log.Println(persons)
+	opcol.Type = 2
+	log.Println(db.CreateCollection(&opcol))
 	/*
-		log.Println(db)
-		log.Println(db.Collections)
-		//
-		var tra Transaction
-		co := NewCounter()
-		co2 := NewCounter()
-		co2.Key = "tet"
-		co.Key = "counter"
-		t1 := time.Now(	)
-		db.Col("trans").Save(co2)
-		t2 := time.Now()
-		// Relate both counter
-		//err := db.Col("rela").SaveEdge(map[string]interface{}{"pirchicho": "loco", "send": true}, "trans/tet", "trans/counter")
-		//log.Print(err)
-		//db.Col("trans").Delete("tet")
+		var test TestDoc
+		test.Atr1 = "A"
 
-		var doc TestDoc
-		doc.Int = 678
+		test.Int = "test2"
+		test.Sub.Requi = "miau"
 
-		tra.Collections = map[string][]string{}
-		// Increase counter by 1
-		// tra.Action = " function(params) { var db = require('internal').db ; var counter = db.trans.document( params.key) ; var change = {} ;var  m = counter[params.stat] ; m[params.hour] = m[params.hour] + params.inc; change[params.stat] = m ; db.trans.update(params.key, change); return m[params.hour]} "
-		//tra.Params = map[string]interface{}{"key": "counter", "hour": 3, "stat": "pcomm", "inc": 2}
-		// Sum whole
-		tra.Action = " function(params) { var db = require('internal').db ; var counter = db.trans.document( params.key) ; var arr = counter[params.stat] ;var sum = 0 ; for (i=0;i< arr.length ; i++){ sum += arr[i]; } ; return sum; } "
-		tra.Params = map[string]interface{}{"key": "counter", "hour": 3, "stat": "pcomm", "inc": 2}
+		t0 := time.Now()
+		log.Println(Save(db, &test))
+		t1 := time.Now()
+		log.Println(test)
+		test.Atr1 = "M"
 
-		for i := 0; i < 1; i++ {
-			db.ExecuteTran(&tra)
+		log.Println(Save(db, &test))
+		c, _ := db.Col("trans").Example(map[string]string{"int": "test2"}, 0, 300)
+		log.Println(c.Amount)
+		log.Println(t1.Sub(t0))
+
+		var persons []Person
+
+		curs, err := db.Col("test").All(0, 30)
+		if err != nil {
+			panic(err)
 		}
-		log.Println(tra.Result)
-		log.Println(t2.Sub(t1))
+
+		curs.FetchBatch(&persons)
+		log.Println(persons)
+		/*
+			log.Println(db)
+			log.Println(db.Collections)
+			//
+			var tra Transaction
+			co := NewCounter()
+			co2 := NewCounter()
+			co2.Key = "tet"
+			co.Key = "counter"
+			t1 := time.Now(	)
+			db.Col("trans").Save(co2)
+			t2 := time.Now()
+			// Relate both counter
+			//err := db.Col("rela").SaveEdge(map[string]interface{}{"pirchicho": "loco", "send": true}, "trans/tet", "trans/counter")
+			//log.Print(err)
+			//db.Col("trans").Delete("tet")
+
+			var doc TestDoc
+			doc.Int = 678
+
+			tra.Collections = map[string][]string{}
+			// Increase counter by 1
+			// tra.Action = " function(params) { var db = require('internal').db ; var counter = db.trans.document( params.key) ; var change = {} ;var  m = counter[params.stat] ; m[params.hour] = m[params.hour] + params.inc; change[params.stat] = m ; db.trans.update(params.key, change); return m[params.hour]} "
+			//tra.Params = map[string]interface{}{"key": "counter", "hour": 3, "stat": "pcomm", "inc": 2}
+			// Sum whole
+			tra.Action = " function(params) { var db = require('internal').db ; var counter = db.trans.document( params.key) ; var arr = counter[params.stat] ;var sum = 0 ; for (i=0;i< arr.length ; i++){ sum += arr[i]; } ; return sum; } "
+			tra.Params = map[string]interface{}{"key": "counter", "hour": 3, "stat": "pcomm", "inc": 2}
+
+			for i := 0; i < 1; i++ {
+				db.ExecuteTran(&tra)
+			}
+			log.Println(tra.Result)
+			log.Println(t2.Sub(t1))
 	*/
 }

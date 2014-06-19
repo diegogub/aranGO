@@ -106,6 +106,21 @@ func Delete(db *Database, m Modeler) Error {
 	return err
 }
 
+func Validate(m interface{}, db *Database,col string, err Error){
+	checkRequired(m, err)
+	checkEnum(m, err)
+
+	val := Tags(m, "sub")
+	if len(val) > 0 {
+		for fname, _ := range val {
+			field := reflectValue(m).FieldByName(fname)
+			// All sub structures are not Models
+			validate(field.Interface(), db, col, err)
+		}
+	}
+	return
+}
+
 func validate(m interface{}, db *Database, col string, err Error) {
 	checkRequired(m, err)
 	checkEnum(m, err)
