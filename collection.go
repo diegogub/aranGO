@@ -52,7 +52,7 @@ func (col *Collection) Save(doc interface{}) error {
 	}
 
 	if res.Status() != 201 && res.Status() != 202 {
-		return errors.New("Unable to save document error")
+		return errors.New("Unable to save document")
 	}
 
 	return nil
@@ -255,8 +255,10 @@ func (c *Collection) Unique(key string, value interface{}, index string) (bool, 
 
 func (c *Collection) All(skip, limit int) (*Cursor, error) {
 	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
 	query := map[string]interface{}{"collection": c.Name, "skip": skip, "limit": limit}
-	// sernd request
 	res, err := c.db.send("simple", "all", "PUT", query, &cur, &cur)
 
 	if err != nil {
@@ -272,8 +274,10 @@ func (c *Collection) All(skip, limit int) (*Cursor, error) {
 
 func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) {
 	var cur Cursor
+  if skip < 0 || limit < 0{
+    return nil, errors.New("Invalid skip or limit")
+  }
 	query := map[string]interface{}{"collection": c.Name, "example": doc, "skip": skip, "limit": limit}
-	// sernd request
 	res, err := c.db.send("simple", "by-example", "PUT", query, &cur, &cur)
 
 	if err != nil {
@@ -289,7 +293,6 @@ func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) 
 
 func (c *Collection) First(example, doc interface{}) error {
 	query := map[string]interface{}{"collection": c.Name, "example": doc}
-
 	// sernd request
 	res, err := c.db.send("simple", "first-example", "PUT", query, &doc, &doc)
 
@@ -302,5 +305,128 @@ func (c *Collection) First(example, doc interface{}) error {
 	} else {
 		return errors.New("Failed to execute query")
 	}
-
 }
+
+//Example query using hash index
+func (c *Collection) ExampleHash(doc interface{},skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-example-hash", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Example query using skip-list index
+func (c *Collection) ExampleSkip(doc interface{},skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-example-skiplist", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+
+//Example query using bitarray index
+func (c *Collection) ExampleBitArray(doc interface{},skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-example-bitarray", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Coditional query using skiplist index
+func (c *Collection) ConditionSkipList(condition string,skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  if condition == ""{
+    return nil,errors.New("Invalid conditions")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"condition": condition, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-condition-skiplist", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Coditional query using bitarray index
+func (c *Collection) ConditionBitArray(condition string,skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  if condition == ""{
+    return nil,errors.New("Invalid conditions")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"condition": condition, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-condition-bitarray", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Return random number
+func (c *Collection) Any(doc interface{}) (error){
+	res, err := c.db.send("simple", "any", "PUT", nil, &doc, &doc)
+
+	if err != nil {
+		return err
+	}
+
+	if res.Status() == 200 {
+		return nil
+	} else {
+		return errors.New("Failed to execute query")
+	}
+}
+
+
