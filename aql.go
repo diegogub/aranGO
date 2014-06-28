@@ -21,7 +21,8 @@ type Query struct {
 
 func NewQuery(query string) *Query {
 	if query == "" {
-		return nil
+		var q Query
+		return &q
 	} else {
 		var q Query
 		q.Aql = query

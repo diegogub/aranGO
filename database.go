@@ -8,13 +8,23 @@ import (
 
 // Database
 type Database struct {
-	Name        string
+  
+  Name        string      `json:"name"`
+  Id   string             `json:"id"`
+  Path string             `json:"path"`
+  System bool             `json:"isSystem"`
 	Collections []Collection
 	sess        *Session
 	baseURL     string
 }
 
-// Execute AQL query into the server
+type DatabaseResult struct {
+	Result []string `json:"result"`
+	Error  bool     `json:"error"`
+	Code   int      `json:"code"`
+}
+
+// Execute AQL query
 func (d *Database) Execute(q *Query) (*Cursor, error) {
 	if q == nil {
 		return nil, errors.New("Cannot execute nil query")
@@ -75,7 +85,6 @@ func (d *Database) IsValid(q *Query) bool {
 }
 
 // Do a request to test if the database is up and user authorized to use it
-
 func (d *Database) get(resource string, id string, method string, param *nap.Params, result, err interface{}) (*nap.Response, error) {
 	url := d.buildRequest(resource, id)
 	var r *nap.Response
@@ -121,11 +130,6 @@ func (db Database) buildRequest(t string, id string) string {
 	return r
 }
 
-type DatabaseResult struct {
-	Result []string `json:"result"`
-	Error  bool     `json:"error"`
-	Code   int      `json:"code"`
-}
 
 // Returns Collection attached to current Database
 func (db Database) Col(name string) *Collection {
