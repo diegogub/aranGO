@@ -31,6 +31,17 @@ func NewDocument(id string) (*Document, error) {
 	return &d, nil
 }
 
+func (d *Document) SetKey(key string) error {
+	//valitated key
+	d.Key = key
+	return nil
+}
+
+func (d *Document) SetRev(rev string) error {
+	d.Rev = rev
+	return nil
+}
+
 // Check if a document was updated
 func (d *Document) Updated(db *Database) (bool,error){
 	if db == nil {
@@ -82,13 +93,3 @@ func (d *Document) Exist(db *Database) (bool, error) {
   }
 }
 
-func (d *Document) SetKey(key string) error {
-	//valitated key
-	d.Key = key
-	return nil
-}
-
-func (d *Document) SetRev(rev string) error {
-	d.Rev = rev
-	return nil
-}

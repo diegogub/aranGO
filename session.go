@@ -28,6 +28,7 @@ type auxCurrentDB struct {
   Db Database   `json:"result"`
 }
 
+// Connects to Database
 func Connect(host, user, password string, log bool) (*Session, error) {
 	var sess Session
 	var s nap.Session
@@ -68,6 +69,7 @@ func Connect(host, user, password string, log bool) (*Session, error) {
 
 }
 
+// Show current database
 func (s *Session) CurrentDB() (*Database,error){
   var db auxCurrentDB
   sdb := s.DB("_system")
@@ -89,6 +91,7 @@ func (s *Session) CurrentDB() (*Database,error){
   }
 }
 
+// List available databases
 func (s *Session) AvailableDBs() ([]string,error){
   var dbs Databases
   db := s.DB("_system")
@@ -112,6 +115,7 @@ func (s *Session) AvailableDBs() ([]string,error){
 
 }
 
+// Create database
 func (s *Session) CreateDB(name string,users []User) error{
   body := make(map[string]interface{})
   // validate name
@@ -141,6 +145,11 @@ func (s *Session) CreateDB(name string,users []User) error{
 
   switch res.Status(){
     case 201:
+      // update Databases
+      var dbs Databases
+      request := s.host + "/_api/database/user"
+      _, err = s.nap.Get(request, nil, &dbs, nil)
+      s.dbs.List = dbs.List
        return nil
     case 400:
        return errors.New("Request parameters are invalid or database already exist")
@@ -149,11 +158,17 @@ func (s *Session) CreateDB(name string,users []User) error{
     case 409:
        return errors.New("Database with the specified name already exists")
     default:
-       return nil
+        // update Databases
+        var dbs Databases
+        request := s.host + "/_api/database/user"
+        _, err = s.nap.Get(request, nil, &dbs, nil)
+        s.dbs.List = dbs.List
+        return nil
   }
 
 }
 
+//Drops database
 func (s *Session) DropDB(name string) error{
   // use _system database
   sdb := s.DB("_system")
@@ -177,6 +192,7 @@ func (s *Session) DropDB(name string) error{
   }
 }
 
+// Return database
 func (s *Session) DB(name string) *Database {
 	var db Database
 	var found bool

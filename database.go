@@ -4,11 +4,11 @@ import (
 	"errors"
 	nap "github.com/jmcvetta/napping"
   "time"
+  "regexp"
 )
 
 // Database
 type Database struct {
-  
   Name        string      `json:"name"`
   Id   string             `json:"id"`
   Path string             `json:"path"`
@@ -153,32 +153,58 @@ func (db Database) Col(name string) *Collection {
 
 // Collection functions
 func (d *Database) CreateCollection(c *CollectionOptions) error {
-	if c.Name == "" {
-		return errors.New("Invalid collection name")
-	}
-	//check if exist
-	resp, err := d.get("collection", c.Name, "GET", nil, nil, nil)
-	if err != nil {
-		return err
-	}
 
-	if resp.Status() == 404 {
-		// try to create it
-		resp, err = d.send("collection", "", "POST", c, nil, nil)
-		if err != nil {
-			return err
-		}
+  reg,err :=regexp.Compile(`^[A-z]+[0-9\-_]*`)
 
-		if resp.Status() != 200 {
-			return errors.New("Cannot create collection, check options")
-		}
+  if err != nil {
+    return err
+  }
+  if !reg.MatchString(c.Name){
+    return errors.New("Invalid collection name")
+  }
 
-		if resp.Status() == 200 {
-			return nil
-		}
-	}
+  resp, err := d.send("collection", "", "POST", c, nil, nil)
 
-	return errors.New("collection exist")
+  switch resp.Status(){
+    case 200:
+      return nil
+    default:
+      return errors.New("Failed to create collection")
+  }
+}
+
+func (d *Database) DropCollection(name string) error {
+  resp, err := d.get("collection", name, "DELETE", nil, nil, nil)
+
+  if err != nil {
+    return err
+  }
+
+  switch resp.Status(){
+    case 200:
+      return nil
+    default:
+      return errors.New("Failed to create collection")
+  }
+}
+
+func (d *Database) TruncateCollection(name string) error{
+  resp, err := d.send("collection", name+ "/truncate", "PUT", nil, nil, nil)
+
+  if err != nil {
+    return err
+  }
+  switch resp.Status(){
+    // TODO need to define return codes
+    case 201:
+      return nil
+    case 200 :
+      return nil
+    case 202 :
+      return nil
+    default:
+      return errors.New("Failed to truncate collection")
+  }
 }
 
 func (d *Database) CheckCollection(name string) *CollectionOptions {

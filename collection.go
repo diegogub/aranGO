@@ -221,10 +221,26 @@ func (col *Collection) Delete(key string) error {
 	}
 }
 
-func (col *Collection) Exist() bool {
-	return true
+// Show if collection exist
+func (col *Collection) Exist(db *Database) bool {
+  if col.Name == "" {
+    return false
+  }
+
+  res, err := db.get(col.Name,"", "GET", nil, nil, nil)
+  if err != nil {
+    panic(err)
+  }
+
+  switch res.Status(){
+    case 404:
+      return false
+    default:
+      return true
+  }
 }
 
+// Get list of collections from any database
 func Collections(db *Database) error {
 	var err error
 	var res *nap.Response
