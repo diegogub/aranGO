@@ -25,6 +25,26 @@ type CollectionOptions struct {
 	ShardKeys []string `json:"shardKeys,omitempty"`
 }
 
+func (opt *CollectionOptions) IsEdge() {
+  opt.Type = 3
+  return
+}
+
+func (opt *CollectionOptions) IsDocument() {
+  opt.Type = 2
+  return
+}
+
+func (opt *CollectionOptions) MustSync() {
+  opt.Sync = true
+  return
+}
+
+func (opt *CollectionOptions) IsVolatile() {
+  opt.Volatile = true
+  return
+}
+
 type Collection struct {
 	db     *Database `json:"db"`
 	Name   string    `json:"name"`
@@ -153,21 +173,26 @@ func (col *Collection) Patch(key string, doc interface{}) error {
 		return errors.New("Key must not be empty")
 	}
 
-	if col.Type == 2 {
-		res, err = col.db.send("document", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
-	} else {
-		res, err = col.db.send("edge", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
-	}
+  if col.Type == 2 {
+    res, err = col.db.send("document", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
+  } else {
+    res, err = col.db.send("edge", col.Name+"/"+key+"?rev=", "PATCH", doc, &doc, &doc)
+  }
 
 	if err != nil {
 		return err
 	}
 
-	if res.Status() != 201 {
-		return errors.New("Unable to replace document")
-	}
-
-	return nil
+  switch res.Status(){
+    case 400:
+      return errors.New("Body does not contain a valid JSON representation of a document.")
+    case 404:
+      return errors.New("Collection or document was not found")
+    case 412:
+      return errors.New("Collection or document was not found")
+    default:
+      return nil
+  }
 }
 
 func (col *Collection) Delete(key string) error {
@@ -188,10 +213,10 @@ func (col *Collection) Delete(key string) error {
 	}
 
 	switch res.Status() {
-	case 202, 200:
-		return nil
-	default:
-		return errors.New("Document don't exist or revision error")
+    case 202, 200:
+      return nil
+    default:
+      return errors.New("Document don't exist or revision error")
 
 	}
 }
