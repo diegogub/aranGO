@@ -11,10 +11,16 @@ type Doc struct {
   List int `json:"test"`
 }
 
+type Person struct {
+  Document
+  Name string
+  Age  int
+}
+
 func TestExample(t *testing.T) {
   log.Println("Connection to database")
 
-  s ,err:= Connect("http://pampa.dev:8529","diego","test",true)
+  s ,err:= Connect("http://pampa.dev:8529","diego","test",false)
 
   if err != nil {
     panic(err)
@@ -93,4 +99,31 @@ func TestExample(t *testing.T) {
   */
   t2 := time.Now()
   log.Println("Time to fetch query:",t2.Sub(t1))
+
+
+  // relate 2 docs
+
+  var d,r Person
+  d.Name = "Diego"; d.Age = 23
+  r.Name = "Romi"; r.Age = 20
+
+ // err = db.TruncateCollection("test2")
+  // save both
+  col.Save(&d)
+  col.Save(&r)
+  rel := db.Col("relations")
+  log.Println("----->",rel.Relate(d.Id,r.Id,map[string]string{ "do" : "love" }))
+
+
+  q2 := NewQuery(`FOR i in test2 FILTER i.gender > 40 return i `)
+
+
+  t3 := time.Now()
+  db.Execute(q2)
+  db.Execute(q2)
+  db.Execute(q2)
+  db.Execute(q2)
+  t4 := time.Now()
+  log.Println(t4.Sub(t3))
+
 }

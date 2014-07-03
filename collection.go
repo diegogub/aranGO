@@ -102,20 +102,15 @@ func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 }
 
 // Relate documents in edge collection
-func (col *Collection) Relate(from *Document, to *Document, label interface{}) error {
+func (col *Collection) Relate(from string, to string, label interface{}) error {
 	if col.Type == 2 {
 		return errors.New("Invalid collection to add Edge: " + col.Name)
 	}
-	if from.Id == "" || to.Id == "" {
+	if from == "" || to == "" {
 		return errors.New("from or to documents don't exist")
 	}
 
-	if from == nil || to == nil {
-		return errors.New("Invalid document to link")
-	}
-
-	return col.SaveEdge(label, from.Id, to.Id)
-
+	return col.SaveEdge(label, from, to)
 }
 
 //Get Document
