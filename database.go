@@ -41,6 +41,7 @@ func (d *Database) Execute(q *Query) (*Cursor, error) {
 		if err != nil {
 			return nil, err
 		}
+    c.max = len(c.Result) - 1
 		return c, nil
 	}
 }
