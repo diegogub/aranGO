@@ -210,6 +210,25 @@ func (d *Database) TruncateCollection(name string) error {
 	}
 }
 
+
+// Show if collection exist
+func (db *Database) ColExist(name string) bool {
+  if name == "" {
+    return false
+  }
+  res, err := db.get("collection",name, "GET", nil, nil, nil)
+  if err != nil {
+    panic(err)
+  }
+
+  switch res.Status(){
+    case 404:
+      return false
+    default:
+      return true
+  }
+}
+
 func (d *Database) CheckCollection(name string) *CollectionOptions {
 	var col CollectionOptions
 	if name == "" {
