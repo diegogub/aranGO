@@ -1,6 +1,8 @@
 aranGO
 ======
-
+~~~
+go get github.com/diegogub/aranGO
+~~~
 Golang driver for ArangoDB.
 It's under development, and I had not time to finish the documentation.
 
