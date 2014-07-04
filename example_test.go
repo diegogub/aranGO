@@ -35,8 +35,12 @@ func TestExample(t *testing.T) {
   }
   // create collection
   var colOpt CollectionOptions
+  var colOpt2 CollectionOptions
+  colOpt2.IsEdge()
   colOpt.Name = "test2"
+  colOpt2.Name = "relations"
   err = s.DB("pichicho").CreateCollection(&colOpt)
+  err = s.DB("pichicho").CreateCollection(&colOpt2)
   var edges CollectionOptions
   edges.Name = "test2"
   edges.Type = 2
@@ -112,18 +116,14 @@ func TestExample(t *testing.T) {
   col.Save(&d)
   col.Save(&r)
   rel := db.Col("relations")
+  if rel == nil {
+    log.Println("invalid collection")
+  }
   log.Println("----->",rel.Relate(d.Id,r.Id,map[string]string{ "do" : "love" }))
 
 
-  q2 := NewQuery(`FOR i in test2 FILTER i.gender > 40 return i `)
-
-
-  t3 := time.Now()
+  q2 := NewQuery(`FOR i in test2 INSERT { name : i.name ,age : i.age} in test2`)
   db.Execute(q2)
-  db.Execute(q2)
-  db.Execute(q2)
-  db.Execute(q2)
-  t4 := time.Now()
-  log.Println(t4.Sub(t3))
+  log.Println(c.Time)
 
 }
