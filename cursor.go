@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+  "time"
 )
 
 type Cursor struct {
@@ -20,6 +21,7 @@ type Cursor struct {
 	ErrMsg string        `json:"errorMessage"`
 	Code   int           `json:"code"`
   max    int
+  Time   time.Duration `json:"time"`
 }
 
 func NewCursor(db *Database) *Cursor {

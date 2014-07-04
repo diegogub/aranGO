@@ -25,6 +25,13 @@ type CollectionOptions struct {
 	ShardKeys []string `json:"shardKeys,omitempty"`
 }
 
+func NewCollectionOptions(name string,sync bool) *CollectionOptions{
+  var copt CollectionOptions
+  copt.Name = name
+  copt.Sync = sync
+  return &copt
+}
+
 func (opt *CollectionOptions) IsEdge() {
   opt.Type = 3
   return

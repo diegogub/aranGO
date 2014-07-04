@@ -3,16 +3,16 @@ package aranGO
 import (
 	"errors"
 	nap "github.com/jmcvetta/napping"
-  "time"
-  "regexp"
+	"regexp"
+	"time"
 )
 
 // Database
 type Database struct {
-  Name        string      `json:"name"`
-  Id   string             `json:"id"`
-  Path string             `json:"path"`
-  System bool             `json:"isSystem"`
+	Name        string `json:"name"`
+	Id          string `json:"id"`
+	Path        string `json:"path"`
+	System      bool   `json:"isSystem"`
 	Collections []Collection
 	sess        *Session
 	baseURL     string
@@ -37,11 +37,14 @@ func (d *Database) Execute(q *Query) (*Cursor, error) {
 		}
 		// create cursor
 		c := NewCursor(d)
+	  t0 := time.Now()
 		_, err := d.send("cursor", "", "POST", q, c, c)
+	  t1 := time.Now()
 		if err != nil {
 			return nil, err
 		}
-    c.max = len(c.Result) - 1
+		c.max = len(c.Result) - 1
+    c.Time = t1.Sub(t0)
 		return c, nil
 	}
 }
@@ -51,19 +54,19 @@ func (d *Database) ExecuteTran(t *Transaction) error {
 		return errors.New("Action must not be nil")
 	}
 
-  // record execution time
-  t0 := time.Now()
+	// record execution time
+	t0 := time.Now()
 	resp, err := d.send("transaction", "", "POST", t, t, t)
-  t1 := time.Now()
-  t.Time = t1.Sub(t0)
+	t1 := time.Now()
+	t.Time = t1.Sub(t0)
 
 	if err != nil {
 		return err
 	}
 
-  if resp.Status() == 400 {
-    return errors.New("Error executing transaction")
-  }
+	if resp.Status() == 400 {
+		return errors.New("Error executing transaction")
+	}
 
 	return nil
 }
@@ -131,7 +134,6 @@ func (db Database) buildRequest(t string, id string) string {
 	return r
 }
 
-
 // Returns Collection attached to current Database
 func (db Database) Col(name string) *Collection {
 	var col Collection
@@ -155,57 +157,57 @@ func (db Database) Col(name string) *Collection {
 // Collection functions
 func (d *Database) CreateCollection(c *CollectionOptions) error {
 
-  reg,err :=regexp.Compile(`^[A-z]+[0-9\-_]*`)
+	reg, err := regexp.Compile(`^[A-z]+[0-9\-_]*`)
 
-  if err != nil {
-    return err
-  }
-  if !reg.MatchString(c.Name){
-    return errors.New("Invalid collection name")
-  }
+	if err != nil {
+		return err
+	}
+	if !reg.MatchString(c.Name) {
+		return errors.New("Invalid collection name")
+	}
 
-  resp, err := d.send("collection", "", "POST", c, nil, nil)
+	resp, err := d.send("collection", "", "POST", c, nil, nil)
 
-  switch resp.Status(){
-    case 200:
-      return nil
-    default:
-      return errors.New("Failed to create collection")
-  }
+	switch resp.Status() {
+	case 200:
+		return nil
+	default:
+		return errors.New("Failed to create collection")
+	}
 }
 
 func (d *Database) DropCollection(name string) error {
-  resp, err := d.get("collection", name, "DELETE", nil, nil, nil)
+	resp, err := d.get("collection", name, "DELETE", nil, nil, nil)
 
-  if err != nil {
-    return err
-  }
+	if err != nil {
+		return err
+	}
 
-  switch resp.Status(){
-    case 200:
-      return nil
-    default:
-      return errors.New("Failed to create collection")
-  }
+	switch resp.Status() {
+	case 200:
+		return nil
+	default:
+		return errors.New("Failed to create collection")
+	}
 }
 
-func (d *Database) TruncateCollection(name string) error{
-  resp, err := d.send("collection", name+ "/truncate", "PUT", nil, nil, nil)
+func (d *Database) TruncateCollection(name string) error {
+	resp, err := d.send("collection", name+"/truncate", "PUT", nil, nil, nil)
 
-  if err != nil {
-    return err
-  }
-  switch resp.Status(){
-    // TODO need to define return codes
-    case 201:
-      return nil
-    case 200 :
-      return nil
-    case 202 :
-      return nil
-    default:
-      return errors.New("Failed to truncate collection")
-  }
+	if err != nil {
+		return err
+	}
+	switch resp.Status() {
+	// TODO need to define return codes
+	case 201:
+		return nil
+	case 200:
+		return nil
+	case 202:
+		return nil
+	default:
+		return errors.New("Failed to truncate collection")
+	}
 }
 
 func (d *Database) CheckCollection(name string) *CollectionOptions {
