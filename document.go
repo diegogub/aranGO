@@ -31,14 +31,6 @@ func NewDocument(id string) (*Document, error) {
 	return &d, nil
 }
 
-// Check if document exist
-func (d *Document) Exist(db *Database) (bool, error) {
-	if db == nil {
-		return false, errors.New("Invalid db")
-	}
-	return true, nil
-}
-
 func (d *Document) SetKey(key string) error {
 	//valitated key
 	d.Key = key
@@ -49,3 +41,55 @@ func (d *Document) SetRev(rev string) error {
 	d.Rev = rev
 	return nil
 }
+
+// Check if a document was updated
+func (d *Document) Updated(db *Database) (bool,error){
+	if db == nil {
+		return false, errors.New("Invalid db")
+	}
+  // check document id and rev
+  if d.Id == "" || d.Rev == "" {
+    return false, errors.New("Document must exist or have valid _rev and _id")
+  }
+  // add revision id
+  res, err := db.get("document",d.Id + "?rev="+d.Rev,"GET",nil,nil,nil)
+
+  if err != nil{
+    return false,err
+  }
+
+  switch res.Status(){
+    case 404:
+       return true,nil
+    case 412:
+       return true,nil
+    default:
+       return false,nil
+  }
+}
+
+// Check if document exist
+func (d *Document) Exist(db *Database) (bool, error) {
+
+	if db == nil {
+		return false, errors.New("Invalid db")
+	}
+  // check document id and rev
+  if d.Id == "" {
+    return false, errors.New("Document must exist or have valid _rev and _id")
+  }
+  // add revision id
+  res, err := db.get("document",d.Id,"GET",nil,nil,nil)
+
+  if err != nil{
+    return false,err
+  }
+
+  switch res.Status(){
+    case 404:
+       return false,nil
+    default:
+       return true,nil
+  }
+}
+

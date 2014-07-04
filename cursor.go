@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+  "time"
 )
 
 type Cursor struct {
-	db *Database `json:"-"`
-	Id string    `json:"Id"`
+	db *Database         `json:"-"`
+	Id string            `json:"Id"`
 
 	Index  int           `json:"-"`
 	Result []interface{} `json:"result"`
@@ -16,9 +17,11 @@ type Cursor struct {
 	Amount int           `json:"count"`
 	Data   Extra         `json:"extra"`
 
-	Err    bool   `json:"error"`
-	ErrMsg string `json:"errorMessage"`
-	Code   int    `json:"code"`
+	Err    bool          `json:"error"`
+	ErrMsg string        `json:"errorMessage"`
+	Code   int           `json:"code"`
+  max    int
+  Time   time.Duration `json:"time"`
 }
 
 func NewCursor(db *Database) *Cursor {
@@ -39,17 +42,29 @@ func (c *Cursor) FetchBatch(r interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	err = json.Unmarshal(b, r)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	// fetch next batch
+	if c.HasMore() {
+		res, err := c.db.send("cursor", c.Id, "PUT", nil, c, c)
+
+		if res.Status() == 200 {
+      return nil
+    }
+
+		if err != nil {
+			return err
+		}
+  }
+
+  return nil
 }
 
-// Iterates over cursor, returns false when no more values into row, fetch next batch if necesary.
-func (c *Cursor) FetchOne(r interface{}) (bool, error) {
+// Iterates over cursor, returns false when no more values into batch, fetch next batch if necesary.
+func (c *Cursor) FetchOne(r interface{}) bool {
 	var max int = len(c.Result) - 1
 
 	if c.Index < max {
@@ -57,9 +72,9 @@ func (c *Cursor) FetchOne(r interface{}) (bool, error) {
 		err = json.Unmarshal(b, r)
 		c.Index++ // move to next value into result
 		if err != nil {
-			return false, err
+			return false
 		} else {
-			return true, nil
+			return true
 		}
 	}
 	// Last document
@@ -67,31 +82,45 @@ func (c *Cursor) FetchOne(r interface{}) (bool, error) {
 		b, err := json.Marshal(c.Result[c.Index])
 		err = json.Unmarshal(b, r)
 		if err != nil {
-			return false, err
+			return false
 		} else {
 			if c.More {
 				//fetch rest from server
-				res, err := c.db.send("cursor", c.Id, "PUT", nil, c, c)
+				res, _:= c.db.send("cursor", c.Id, "PUT", nil, c, c)
 
 				if err != nil {
-					return false, err
+					return false
 				}
 
 				if res.Status() == 200 {
 					c.Index = 0
-					return true, nil
+					return true
 				} else {
-					return false, nil
+					return false
 				}
 
 			} else {
 				// last doc
-				return false, nil
+				return false
 			}
 		}
 	}
 
-	return false, nil
+	return false
+}
+
+// move cursor index by 1
+func (c *Cursor) Next(r interface{}) bool{
+  if c.Index == c.max {
+    return false
+  }else{
+    c.Index ++
+    if c.Index == c.max {
+      return true
+    }else{
+      return false
+    }
+  }
 }
 
 type Extra struct {

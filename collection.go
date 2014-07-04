@@ -25,6 +25,33 @@ type CollectionOptions struct {
 	ShardKeys []string `json:"shardKeys,omitempty"`
 }
 
+func NewCollectionOptions(name string,sync bool) *CollectionOptions{
+  var copt CollectionOptions
+  copt.Name = name
+  copt.Sync = sync
+  return &copt
+}
+
+func (opt *CollectionOptions) IsEdge() {
+  opt.Type = 3
+  return
+}
+
+func (opt *CollectionOptions) IsDocument() {
+  opt.Type = 2
+  return
+}
+
+func (opt *CollectionOptions) MustSync() {
+  opt.Sync = true
+  return
+}
+
+func (opt *CollectionOptions) IsVolatile() {
+  opt.Volatile = true
+  return
+}
+
 type Collection struct {
 	db     *Database `json:"db"`
 	Name   string    `json:"name"`
@@ -52,7 +79,7 @@ func (col *Collection) Save(doc interface{}) error {
 	}
 
 	if res.Status() != 201 && res.Status() != 202 {
-		return errors.New("Unable to save document error")
+		return errors.New("Unable to save document")
 	}
 
 	return nil
@@ -82,20 +109,15 @@ func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 }
 
 // Relate documents in edge collection
-func (col *Collection) Relate(from *Document, to *Document, label interface{}) error {
+func (col *Collection) Relate(from string, to string, label interface{}) error {
 	if col.Type == 2 {
 		return errors.New("Invalid collection to add Edge: " + col.Name)
 	}
-	if from.Id == "" || to.Id == "" {
+	if from == "" || to == "" {
 		return errors.New("from or to documents don't exist")
 	}
 
-	if from == nil || to == nil {
-		return errors.New("Invalid document to link")
-	}
-
-	return col.SaveEdge(label, from.Id, to.Id)
-
+	return col.SaveEdge(label, from, to)
 }
 
 //Get Document
@@ -153,21 +175,26 @@ func (col *Collection) Patch(key string, doc interface{}) error {
 		return errors.New("Key must not be empty")
 	}
 
-	if col.Type == 2 {
-		res, err = col.db.send("document", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
-	} else {
-		res, err = col.db.send("edge", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
-	}
+  if col.Type == 2 {
+    res, err = col.db.send("document", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
+  } else {
+    res, err = col.db.send("edge", col.Name+"/"+key+"?rev=", "PATCH", doc, &doc, &doc)
+  }
 
 	if err != nil {
 		return err
 	}
 
-	if res.Status() != 201 {
-		return errors.New("Unable to replace document")
-	}
-
-	return nil
+  switch res.Status(){
+    case 400:
+      return errors.New("Body does not contain a valid JSON representation of a document.")
+    case 404:
+      return errors.New("Collection or document was not found")
+    case 412:
+      return errors.New("Collection or document was not found")
+    default:
+      return nil
+  }
 }
 
 func (col *Collection) Delete(key string) error {
@@ -188,18 +215,16 @@ func (col *Collection) Delete(key string) error {
 	}
 
 	switch res.Status() {
-	case 202, 200:
-		return nil
-	default:
-		return errors.New("Document don't exist or revision error")
+    case 202, 200:
+      return nil
+    default:
+      return errors.New("Document don't exist or revision error")
 
 	}
 }
 
-func (col *Collection) Exist() bool {
-	return true
-}
 
+// Get list of collections from any database
 func Collections(db *Database) error {
 	var err error
 	var res *nap.Response
@@ -255,8 +280,10 @@ func (c *Collection) Unique(key string, value interface{}, index string) (bool, 
 
 func (c *Collection) All(skip, limit int) (*Cursor, error) {
 	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
 	query := map[string]interface{}{"collection": c.Name, "skip": skip, "limit": limit}
-	// sernd request
 	res, err := c.db.send("simple", "all", "PUT", query, &cur, &cur)
 
 	if err != nil {
@@ -272,8 +299,10 @@ func (c *Collection) All(skip, limit int) (*Cursor, error) {
 
 func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) {
 	var cur Cursor
+  if skip < 0 || limit < 0{
+    return nil, errors.New("Invalid skip or limit")
+  }
 	query := map[string]interface{}{"collection": c.Name, "example": doc, "skip": skip, "limit": limit}
-	// sernd request
 	res, err := c.db.send("simple", "by-example", "PUT", query, &cur, &cur)
 
 	if err != nil {
@@ -289,7 +318,6 @@ func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) 
 
 func (c *Collection) First(example, doc interface{}) error {
 	query := map[string]interface{}{"collection": c.Name, "example": doc}
-
 	// sernd request
 	res, err := c.db.send("simple", "first-example", "PUT", query, &doc, &doc)
 
@@ -302,5 +330,128 @@ func (c *Collection) First(example, doc interface{}) error {
 	} else {
 		return errors.New("Failed to execute query")
 	}
-
 }
+
+//Example query using hash index
+func (c *Collection) ExampleHash(doc interface{},skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-example-hash", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Example query using skip-list index
+func (c *Collection) ExampleSkip(doc interface{},skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-example-skiplist", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+
+//Example query using bitarray index
+func (c *Collection) ExampleBitArray(doc interface{},skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-example-bitarray", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Coditional query using skiplist index
+func (c *Collection) ConditionSkipList(condition string,skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  if condition == ""{
+    return nil,errors.New("Invalid conditions")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"condition": condition, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-condition-skiplist", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Coditional query using bitarray index
+func (c *Collection) ConditionBitArray(condition string,skip int,limit int,index string) (*Cursor,error){
+	var cur Cursor
+  if skip < 0 || limit < 0 {
+    return nil, errors.New("Invalid skip or limit")
+  }
+  if condition == ""{
+    return nil,errors.New("Invalid conditions")
+  }
+  query := map[string]interface{}{"collection": c.Name, "index" : index,"condition": condition, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "by-condition-bitarray", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+//Return random number
+func (c *Collection) Any(doc interface{}) (error){
+	res, err := c.db.send("simple", "any", "PUT", nil, &doc, &doc)
+
+	if err != nil {
+		return err
+	}
+
+	if res.Status() == 200 {
+		return nil
+	} else {
+		return errors.New("Failed to execute query")
+	}
+}
+
+
