@@ -62,11 +62,9 @@ type AqlStruct struct {
   list        string
   lines       []AqlStructer
   vars        map[string]string
-  //Collect
-  Groups      Collect                   `json:"groups"`
   // Return
   // could be string or AqlStruct
-  View        `json:"view"`
+  //View        `json:"view"`
 }
 
 func (aq *AqlStruct) Generate() string{
@@ -76,28 +74,89 @@ func (aq *AqlStruct) Generate() string{
     q+= line.Generate()
   }
 
-  // Add default view
-  if aq.View == nil {
-    q+= `
-RETURN `+aq.main
-  }else{
-    // Generate view
-    q+= aq.View.Generate()
-  }
-
   return q
+}
+
+func (aq *AqlStruct) AddLoop(v string,list string) *AqlStruct {
+  var l Loop
+  if v != "" {
+    l.Var = v
+    l.List = list
+  }
+  aq.lines = append(aq.lines,l)
+  return aq
+}
+
+func (aq *AqlStruct) SetView(v map[string]interface{}) *AqlStruct {
+  var vie View
+  vie = v
+  aq.lines = append(aq.lines,vie)
+  return aq
+}
+
+func (aq *AqlStruct) AddGroup(gs map[string]Var,into string) *AqlStruct{
+  if gs != nil {
+    var c Collects
+    c.Collect = gs
+    if into != ""{
+      c.Gro = into
+    }
+    aq.lines = append(aq.lines,c)
+  }
+  return aq
+}
+
+
+func (aq *AqlStruct) SetList(obj string,list string) *AqlStruct{
+  aq.main = obj
+  aq.list = list
+  return aq
+}
+
+func (aq *AqlStruct) AddFilter(key string,values []Pair) *AqlStruct{
+  var fil Filters
+  if key != "" && values != nil{
+    fil.Key = key
+    fil.Filter = values
+    aq.lines = append(aq.lines,fil)
+  }
+  return aq
 }
 
 type View map[string]interface{}
 
 func (v View) Generate() string{
-  q:= ""
+  q:= `
+RETURN { `
+  i:=0
+  for key,inte := range(v) {
+    q += key+":"
+    switch inte.(type) {
+      case Var:
+        q += inte.(Var).Obj+"."+inte.(Var).Name
+      case string:
+        q += "'"+inte.(string)+"'"
+      case int:
+        q += strconv.Itoa(inte.(int))
+      case int32:
+        q += strconv.FormatInt(inte.(int64),10)
+      case int64:
+        q += strconv.FormatInt(inte.(int64),10)
+      case AqlStruct,*AqlStruct:
+        q += "( "+inte.(*AqlStruct).Generate()+" )"
+    }
+    if len(v)-1 != i {
+      q+=","
+    }
+    i++
+  }
+  q+= " }"
   return q
 }
 
 type Collects struct{
   // COLLECT key = Obj.Var,..., INTO Gro
-  Collect map[string]Group  `json:"collect"`
+  Collect map[string]Var `json:"collect"`
   Gro   string              `json:"group"`
 }
 
@@ -106,9 +165,33 @@ type Group struct{
   Var   string  `json:"var"`
 }
 
+func (c Collects) Generate() string{
+  if c.Collect == nil {
+    return ""
+  }
+  q:= `
+COLLECT `
+  i:= 0
+  for key,group := range(c.Collect){
+    if i == len(c.Collect)-1 {
+      q += key +"="+group.Obj+"."+group.Name
+    }
+
+    if i < len(c.Collect)-1 {
+      q += key +"="+group.Obj+"."+group.Name+","
+    }
+
+    i++
+  }
+  if c.Gro != ""{
+    q += " INTO "+c.Gro
+  }
+  return q
+}
+
 type Limits struct{
-  Skip   int64
-  Limit  int64
+  Skip   int64 `json:"skip"`
+  Limit  int64 `json:"limit"`
 }
 
 func (l Limits) Generate() string {
@@ -127,8 +210,38 @@ func (aq *AqlStruct) AddLimit(skip,limit int64) *AqlStruct{
   return aq
 }
 
+func (aq *AqlStruct) AddLet(v string,i interface{}) *AqlStruct{
+  switch i.(type){
+    case string:
+    case *AqlStruct:
+    default:
+      return aq
+  }
+  var f Lets
+  if v != ""{
+    f.Var = v
+    f.Comm = i
+  }
+  aq.lines = append(aq.lines,f)
+  return aq
+}
+
 type Lets struct {
-  list    map[string]interface{}    `json:"lets"`
+  Var     string         `json:"var"`
+  Comm    interface{}    `json:"comm"`
+}
+
+func (l Lets) Generate() string {
+  q := `
+LET `+l.Var+` = (`
+  switch l.Comm.(type) {
+    case string:
+        q += l.Comm.(string)
+    case *AqlStruct:
+        q += l.Comm.(*AqlStruct).Generate()
+  }
+  q += `)`
+  return q
 }
 
 type Filters struct{
@@ -138,7 +251,7 @@ type Filters struct{
 
 type Pair struct {
   Obj     string      `json:"obj"`
-  Logic   string      `json:"log"`
+  Logic   string      `json:"op"`
   Value   interface{} `json:"val"`
 }
 
@@ -161,7 +274,7 @@ func (f Filters) Generate() string{
   // iterate over filters
   // first
   q += `
-FILTER (`
+FILTER ( `
   oper = "||"
 
   for i,pair := range(pairs){
@@ -170,17 +283,17 @@ FILTER (`
     }
     switch pair.Value.(type) {
       case bool:
-        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.FormatBool(pair.Value.(bool))+" "+oper+" "
+        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.FormatBool(pair.Value.(bool))+" "+oper
       case int:
-        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.Itoa(pair.Value.(int))+" "+oper+" "
+        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.Itoa(pair.Value.(int))+" "+oper
       case int64:
-        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.FormatInt(pair.Value.(int64),10)+" "+oper+" "
+        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.FormatInt(pair.Value.(int64),10)+" "+oper
       case string:
-        q += key+"."+pair.Obj+" "+pair.Logic+" '"+pair.Value.(string)+"' "+oper+" "
+        q += key+"."+pair.Obj+" "+pair.Logic+" '"+pair.Value.(string)+"' "+oper
       case float32,float64:
-        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.FormatFloat(pair.Value.(float64),'f',6,64)+" "+oper+" "
+        q += key+"."+pair.Obj+" "+pair.Logic+" "+strconv.FormatFloat(pair.Value.(float64),'f',6,64)+" "+oper
       case Var:
-        q += key+"."+pair.Obj+" "+pair.Logic+" "+pair.Value.(Var).Obj+"."+pair.Value.(Var).Name+" "+oper+" "
+        q += key+"."+pair.Obj+" "+pair.Logic+" "+pair.Value.(Var).Obj+"."+pair.Value.(Var).Name+" "+oper
     }
     if i == len(pairs)-1{
       q += ")"
@@ -191,64 +304,19 @@ FILTER (`
   return q
 }
 
+type Loop struct {
+  Var  string
+  List string
+}
+
+func (l Loop) Generate() string{
+  q := `
+FOR `+l.Var+` IN `+l.List
+  return q
+}
+
 // Variable into document
 type Var  struct {
   Obj     string      `json:"obj"`
   Name    string      `json:"name"`
 }
-
-
-//If collect set, vars are reset to context vars
-type Collect struct {
-  Groups   map[string]string   `json:"groups"`
-  Into     string              `json:"into"`
-}
-
-/*
-func (aq *AqlStruct) ToString() string{
-  q := ""
-  aq.vars = make(map[string]string)
-  // Start with list
-  if len(aq.List) == 1 {
-    for key,list := range(aq.List){
-      aq.vars[key] = ""
-      q += "FOR "+key+" IN "+list+" "
-    }
-  }
-  // add filters
-  if len(aq.Filters) > 0{
-    q += aq.filters()+`
-    `
-  }
-  //
-  // view
-  q += aq.view()
-  return q
-}
-*/
-
-func (f AqlStruct) view() string{
-  if len(f.View) == 0{
-    return "RETURN "+f.main
-  }
-  return ""
-}
-
-
-func (aq *AqlStruct) SetList(obj string,list string) *AqlStruct{
-  aq.main = obj
-  aq.list = list
-  return aq
-}
-
-func (aq *AqlStruct) AddFilter(key string,values []Pair) *AqlStruct{
-  var fil Filters
-  if key != "" && values != nil{
-    fil.Key = key
-    fil.Filter = values
-    aq.lines = append(aq.lines,fil)
-  }
-  return aq
-}
-
-
