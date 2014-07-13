@@ -320,3 +320,53 @@ type Var  struct {
   Obj     string      `json:"obj"`
   Name    string      `json:"name"`
 }
+
+type AqlUserFunction struct {
+  Name string `json:"name"`
+  Code string `json:"code"`
+  Deterministic bool `json:"isDeterministic"`
+}
+
+func NewAqlFunction(name string,code string,deter bool) *AqlUserFunction{
+  var aqf AqlUserFunction
+  if name != "" && code != ""{
+    aqf.Name = name
+    aqf.Code = code
+    return &aqf
+  }
+  return nil
+}
+
+func (a *AqlUserFunction) Register(db Database) error{
+  res, err := db.send("aqlfunction","","POST",a,nil,nil)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,201:
+       return nil
+    case 400:
+      return errors.New("Failed to create aqlfunction")
+    default:
+      return nil
+  }
+}
+
+func (a *AqlUserFunction) Delete(db Database,name string) error{
+  res, err := db.send("aqlfunction",name,"DELETE",a,nil,nil)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,201:
+       return nil
+    case 400:
+      return errors.New("Invalid name")
+    case 404:
+      return errors.New("Function don't exist")
+    default:
+      return nil
+  }
+}

@@ -78,11 +78,18 @@ func (col *Collection) Save(doc interface{}) error {
 		return err
 	}
 
-	if res.Status() != 201 && res.Status() != 202 {
-		return errors.New("Unable to save document")
-	}
-
-	return nil
+  switch res.Status() {
+    case 201:
+      return nil
+    case 202:
+      return nil
+    case 400:
+      return errors.New("Invalid document json")
+    case 404:
+      return errors.New("Collection does not exist")
+    default:
+      return nil
+  }
 }
 
 // Save Edge into Edges collection
@@ -106,6 +113,32 @@ func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 
 	return nil
 
+}
+
+//Get vertex relations
+func (col *Collection) Relations(start string,direction string) error{
+  if start == "" {
+    return errors.New("Invalid start vertex")
+  }
+  if direction != "in" && direction != "out" {
+    direction = "any"
+  }
+
+  if col.Type == 2 {
+		return errors.New("Invalid edge collection: " + col.Name)
+  }
+
+  res ,err := col.db.get("edges",col.Name+"?vertex="+start+"&direction="+direction,"GET",nil,nil,nil)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200 :
+      return nil
+    default:
+      return errors.New("failed to get edges")
+  }
 }
 
 // Relate documents in edge collection
@@ -160,11 +193,18 @@ func (col *Collection) Replace(key string, doc interface{}) error {
 		return err
 	}
 
-	if res.Status() != 201 {
-		return errors.New("Unable to replace document")
-	}
-
-	return nil
+  switch res.Status(){
+    case 201:
+       return nil
+    case 202:
+       return nil
+    case 400:
+      return errors.New("Invalid json")
+    case 404:
+      return errors.New("Collection or document was not found")
+    default:
+      return nil
+  }
 }
 
 func (col *Collection) Patch(key string, doc interface{}) error {
@@ -186,11 +226,13 @@ func (col *Collection) Patch(key string, doc interface{}) error {
 	}
 
   switch res.Status(){
+    case 201:
+      return nil
+    case 202:
+      return nil
     case 400:
       return errors.New("Body does not contain a valid JSON representation of a document.")
     case 404:
-      return errors.New("Collection or document was not found")
-    case 412:
       return errors.New("Collection or document was not found")
     default:
       return nil
@@ -453,5 +495,3 @@ func (c *Collection) Any(doc interface{}) (error){
 		return errors.New("Failed to execute query")
 	}
 }
-
-
