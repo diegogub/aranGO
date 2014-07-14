@@ -5,21 +5,22 @@ package aranGO
 import (
 	"errors"
 	nap "github.com/jmcvetta/napping"
-	"reflect"
 )
 
-// options to create collection
+// Options to create collection
 type CollectionOptions struct {
 	Name    string `json:"name"`
 	Type    uint   `json:"type"`
 	Sync    bool   `json:"waitForSync,omitempty"`
 	Compact bool   `json:"doCompact,omitempty"`
 	//Cannot create with custom journal? TODO
-	//JournalSize string                 `json:"journalSize,omitempty"`
+	JournalSize int                 `json:"journalSize,omitempty"`
 	System   bool                   `json:"isSystem,omitempty"`
 	Volatile bool                   `json:"isVolatile,omitempty"`
 	Keys     map[string]interface{} `json:"keyOptions,omitempty"`
 
+  // Count
+  Count   int64      `json:"count"`
 	// Cluster
 	Shards    int      `json:"numberOfShards,omitempty"`
 	ShardKeys []string `json:"shardKeys,omitempty"`
@@ -52,6 +53,7 @@ func (opt *CollectionOptions) IsVolatile() {
   return
 }
 
+// Basic Collection struct
 type Collection struct {
 	db     *Database `json:"db"`
 	Name   string    `json:"name"`
@@ -63,6 +65,37 @@ type Collection struct {
 	revision bool   `json:"-"`
 }
 
+// Load collection
+func (col *Collection) Load() error {
+  // set count to false to speed up loading
+  payload := map[string]bool { "count" : false }
+  res, err := col.db.send("collection",col.Name+"/load","PUT",payload,nil,nil)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status(){
+    case 400,404:
+      return errors.New("Invalid collection to load")
+    default:
+      return nil
+  }
+}
+
+func (col *Collection) Count() int64{
+  var cop CollectionOptions
+  res,err := col.db.get("collection",col.Name+"/count","GET",nil,&cop,&cop)
+  if err != nil {
+    return 0
+  }
+
+  switch res.Status() {
+    case 400,404:
+      return 0
+    default:
+      return cop.Count
+  }
+}
 // Save saves doc into collection, doc should have Document Embedded to retrieve error and Key later.
 func (col *Collection) Save(doc interface{}) error {
 	var err error
@@ -116,7 +149,7 @@ func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 }
 
 //Get vertex relations
-func (col *Collection) Relations(start string,direction string) error{
+func (col *Collection) Edges(start string,direction string,result interface{}) error{
   if start == "" {
     return errors.New("Invalid start vertex")
   }
@@ -128,7 +161,7 @@ func (col *Collection) Relations(start string,direction string) error{
 		return errors.New("Invalid edge collection: " + col.Name)
   }
 
-  res ,err := col.db.get("edges",col.Name+"?vertex="+start+"&direction="+direction,"GET",nil,nil,nil)
+  res ,err := col.db.get("edges",col.Name+"?vertex="+start+"&direction="+direction,"GET",nil,&result,&result)
   if err != nil {
     return err
   }
@@ -284,18 +317,8 @@ func Collections(db *Database) error {
 	}
 }
 
-func reflectValue(obj interface{}) reflect.Value {
-	var val reflect.Value
 
-	if reflect.TypeOf(obj).Kind() == reflect.Ptr {
-		val = reflect.ValueOf(obj).Elem()
-	} else {
-		val = reflect.ValueOf(obj)
-	}
-	return val
-}
-
-// check if a key is unique or not
+// check if a key is unique
 func (c *Collection) Unique(key string, value interface{}, index string) (bool, error) {
 	var cur *Cursor
 	var err error
@@ -358,8 +381,9 @@ func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) 
 	}
 }
 
+// Returns first document in example query
 func (c *Collection) First(example, doc interface{}) error {
-	query := map[string]interface{}{"collection": c.Name, "example": doc}
+	query := map[string]interface{}{"collection": c.Name, "example": example}
 	// sernd request
 	res, err := c.db.send("simple", "first-example", "PUT", query, &doc, &doc)
 

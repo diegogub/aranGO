@@ -337,6 +337,7 @@ func NewAqlFunction(name string,code string,deter bool) *AqlUserFunction{
   return nil
 }
 
+// Register new user function
 func (a *AqlUserFunction) Register(db Database) error{
   res, err := db.send("aqlfunction","","POST",a,nil,nil)
   if err != nil {
