@@ -14,16 +14,18 @@ type DocTest struct {
 func TestExample(t *testing.T) {
   // connect
   log.Println("start test")
-  s,err := Connect("http://localhost:8529","diego","test",false)
+  s,err := Connect("http://pampa.dev:8529","diego","test",true)
   if err != nil{
     panic(err)
   }
   db := s.DB("_system")
 
+  if db == nil {
+    panic("invalid db")
+  }
   // test relations
-  var i interface{}
-  i = db.Col("vertex").Count()
-  log.Println(i)
-
+  //ed := NewEdgeDefinition("edges",[]string{ "test" }, []string{ "test" })
+  ed2 := NewEdgeDefinition("runs",[]string{ "test" }, []string{ "campaigns" })
+  db.Graph("test1").AddEdge(ed2)
 
 }
