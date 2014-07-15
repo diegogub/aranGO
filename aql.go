@@ -77,6 +77,15 @@ func (aq *AqlStruct) Generate() string{
   return q
 }
 
+// Custom struct while I implement more strutures
+type Custom struct {
+  Code string
+}
+
+func (c Custom) Generate() string {
+  return c.Code
+}
+
 func (aq *AqlStruct) AddLoop(v string,list string) *AqlStruct {
   var l Loop
   if v != "" {
