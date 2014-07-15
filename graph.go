@@ -14,8 +14,246 @@ type Graph struct {
   db        *Database
 }
 
+type graphObj struct {
+  V   map[string]interface{}  `json:"vertex"`
+  E   map[string]interface{}  `json:"edge"`
+}
+
+// Remove Vertex
+func (g *Graph) RemoveE(col string,key string) error{
+  if col == "" || key == "" {
+    return errors.New("Invalid key or collection")
+  }
+
+  res, err := g.db.get("gharial",g.Name+"/edge/"+col+"/"+key,"DELETE",nil,nil,nil)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,202:
+      return nil
+      // need to add conditional update
+    case 404,412:
+      return errors.New("Invalid collection ,graph or document id")
+    default:
+      return nil
+  }
+}
+
+//Replace edge
+func (g *Graph) ReplaceE(col string,key string,doc interface{},patch interface{}) error{
+  if col == "" || key == "" {
+    return errors.New("Invalid key or collection")
+  }
+  var gr graphObj
+
+  res, err := g.db.send("gharial",g.Name+"/edge/"+col+"/"+key,"PUT",patch,&gr,&gr)
+  subParse(gr.V,doc)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,202:
+      return nil
+      // need to add conditional update
+    case 404,412:
+      return errors.New("Invalid collection ,graph or edge id")
+    default:
+      return nil
+  }
+}
+
+//Patch Edge
+func (g *Graph) PatchE(col string,key string,doc interface{},patch interface{}) error{
+  if col == "" || key == "" {
+    return errors.New("Invalid key or collection")
+  }
+
+  var gr graphObj
+  res, err := g.db.send("gharial",g.Name+"/edge/"+col+"/"+key,"PATCH",patch,&gr,&gr)
+  subParse(gr.E,doc)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,202:
+      return nil
+      // need to add conditional update
+    case 404,412:
+      return errors.New("Invalid collection ,graph or document id")
+    default:
+      return nil
+  }
+}
+// Get Edge
+func (g *Graph) GetE(col string,key string,edge interface{}) error{
+  if col == "" || key == ""{
+    return errors.New("Invalid collection or key value")
+  }
+  var gr graphObj
+  res, err := g.db.get("gharial",g.Name+"/edge/"+col+"/"+key,"GET",nil,&gr,&gr)
+  subParse(gr.E,edge)
+
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 201,202:
+      return nil
+    case 404:
+      return errors.New("Invalid collection or graph to save edge")
+    default:
+      return nil
+  }
+}
+
+//Creates a Egde
+func (g *Graph) E(col string,edge interface{}) error{
+  if col == "" {
+    return errors.New("Invalid collection name")
+  }
+  var gr graphObj
+  res, err := g.db.send("gharial",g.Name+"/edge/"+col,"POST",edge,&gr,&gr)
+  subParse(gr.E,edge)
+
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 201,202:
+      return nil
+    case 404:
+      return errors.New("Invalid collection or graph to save edge")
+    default:
+      return nil
+  }
+}
+
+// Remove Vertex
+func (g *Graph) RemoveV(col string,key string) error{
+  if col == "" || key == "" {
+    return errors.New("Invalid key or collection")
+  }
+
+  res, err := g.db.get("gharial",g.Name+"/vertex/"+col+"/"+key,"DELETE",nil,nil,nil)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,202:
+      return nil
+      // need to add conditional update
+    case 404,412:
+      return errors.New("Invalid collection ,graph or document id")
+    default:
+      return nil
+  }
+}
+
+//Replace vertex
+func (g *Graph) ReplaceV(col string,key string,doc interface{},patch interface{}) error{
+  if col == "" || key == "" {
+    return errors.New("Invalid key or collection")
+  }
+  var gr graphObj
+
+  res, err := g.db.send("gharial",g.Name+"/vertex/"+col+"/"+key,"PUT",patch,&gr,&gr)
+  subParse(gr.V,doc)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,202:
+      return nil
+      // need to add conditional update
+    case 404,412:
+      return errors.New("Invalid collection ,graph or document id")
+    default:
+      return nil
+  }
+}
+
+//Patch vertex
+func (g *Graph) PatchV(col string,key string,doc interface{},patch interface{}) error{
+  if col == "" || key == "" {
+    return errors.New("Invalid key or collection")
+  }
+
+  var gr graphObj
+  res, err := g.db.send("gharial",g.Name+"/vertex/"+col+"/"+key,"PATCH",patch,&gr,&gr)
+  subParse(gr.V,doc)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 200,202:
+      return nil
+      // need to add conditional update
+    case 404,412:
+      return errors.New("Invalid collection ,graph or document id")
+    default:
+      return nil
+  }
+}
+
+//Creates a vertex in collection
+func (g *Graph) V(col string,doc interface{}) error{
+  if col == "" {
+    return errors.New("Invalid collection name")
+  }
+  var  gr graphObj
+  res, err := g.db.send("gharial",g.Name+"/vertex/"+col,"POST",doc,&gr,&gr)
+  subParse(gr.V,doc)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 201,202:
+      return nil
+    case 404:
+      return errors.New("Invalid collection or graph to save vertex")
+    default:
+      return nil
+  }
+}
+
+//Gets Vertex from collection
+func (g *Graph) GetV(col string,key string,doc interface{}) error{
+  if key == "" || col == ""{
+    return errors.New("Invalid key or collection to get")
+  }
+  // workaround nested vertex
+  var gr graphObj
+  res, err := g.db.get("gharial",g.Name+"/vertex/"+col+"/"+key,"GET",nil,&gr,&gr)
+  subParse(gr.V,doc)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status(){
+    case 200:
+      return nil
+    case 404:
+      return errors.New("Invalid collection or graph")
+    case 412:
+      return errors.New("Updated")
+    default:
+      return nil
+  }
+
+}
+
 // Remove vertex collections
-func(g *Graph) RemoveVertex(col string) error{
+func(g *Graph) RemoveVertexCol(col string) error{
   if g.db == nil{
     return errors.New("Invalid db")
   }
@@ -23,7 +261,7 @@ func(g *Graph) RemoveVertex(col string) error{
     return errors.New("Invalid collection")
   }
 
-  res, err :=g.db.get("gharial",g.Key+"/vertex/"+col,"DELETE",nil,nil,nil)
+  res, err :=g.db.get("gharial",g.Name+"/vertex/"+col,"DELETE",nil,nil,nil)
   if err != nil {
     return err
   }
@@ -39,7 +277,7 @@ func(g *Graph) RemoveVertex(col string) error{
 }
 
 // Remove edge 
-func(g *Graph) RemoveEdge(col string) error{
+func(g *Graph) RemoveEdgeDef(col string) error{
   if g.db == nil{
     return errors.New("Invalid db")
   }
@@ -47,7 +285,7 @@ func(g *Graph) RemoveEdge(col string) error{
     return errors.New("Invalid edge")
   }
 
-  res, err :=g.db.get("gharial",g.Key+"/edge/"+col,"DELETE",nil,nil,nil)
+  res, err :=g.db.get("gharial",g.Name+"/edge/"+col,"DELETE",nil,nil,nil)
   if err != nil {
     return err
   }
@@ -63,7 +301,7 @@ func(g *Graph) RemoveEdge(col string) error{
 }
 
 // Add vertex collections
-func (g *Graph) AddVertex(col string) error{
+func (g *Graph) AddVertexCol(col string) error{
   if g.db == nil{
     return errors.New("Invalid db")
   }
@@ -85,7 +323,7 @@ func (g *Graph) AddVertex(col string) error{
 }
 
 
-func (g *Graph) AddEdge(ed *EdgeDefinition) error{
+func (g *Graph) AddEdgeDef(ed *EdgeDefinition) error{
   if g.db == nil{
     return errors.New("Invalid db")
   }
@@ -105,7 +343,7 @@ func (g *Graph) AddEdge(ed *EdgeDefinition) error{
   }
 }
 
-func (g *Graph) ReplaceEdge(name string,ed *EdgeDefinition) error{
+func (g *Graph) ReplaceEdgeDef(name string,ed *EdgeDefinition) error{
   if g.db == nil{
     return errors.New("Invalid db")
   }
@@ -125,7 +363,7 @@ func (g *Graph) ReplaceEdge(name string,ed *EdgeDefinition) error{
   }
 }
 
-func (g *Graph) ListEdges() ([]string,error){
+func (g *Graph) ListEdgesDef() ([]string,error){
   if g.db == nil{
     return []string{},errors.New("Invalid db")
   }
@@ -143,7 +381,7 @@ func (g *Graph) ListEdges() ([]string,error){
   }
 }
 
-func (g *Graph) ListVertex() ([]string,error){
+func (g *Graph) ListVertexCol() ([]string,error){
   if g.db == nil{
     return []string{},errors.New("Invalid db")
   }
