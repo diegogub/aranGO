@@ -20,7 +20,7 @@ type graphObj struct {
 }
 
 // Tranvers graph
-func (g *Graph) Travers(t *Traversal,r interface{}) error{
+func (g *Graph) Traverse(t *Traversal,r interface{}) error{
   if g.Key == "" {
     return errors.New("Invalid graph to travers")
   }
