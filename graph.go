@@ -19,6 +19,29 @@ type graphObj struct {
   E   map[string]interface{}  `json:"edge"`
 }
 
+// Tranvers graph
+func (g *Graph) Travers(t *Traversal,r interface{}) error{
+  if g.Key == "" {
+    return errors.New("Invalid graph to travers")
+  }
+
+  res, err := g.db.send("traversal","","POST",t,r,r)
+  if err != nil {
+    return err
+  }
+
+  switch res.Status() {
+    case 404:
+      return errors.New("Invalid collections or graph")
+    case 400:
+      return errors.New("Traversal specification is either missing or malformed")
+    case 500:
+      return errors.New("Error inside traversal or traversal performed more than maxIterations iterations.")
+    default:
+      return nil
+  }
+}
+
 // Remove Vertex
 func (g *Graph) RemoveE(col string,key string) error{
   if col == "" || key == "" {
@@ -509,4 +532,28 @@ func (db *Database) ListGraphs() ([]Graph,error){
     default:
       return nil,errors.New("Unable to list graphs")
   }
+}
+
+
+type Traversal struct {
+  graphName     string  `json:"graphName"`
+  StartVertex   string  `json:"startVertex"`
+  Filter        string  `json:"filter"`
+  MinDepth      int     `json:"minDepth"`
+  MaxDepth      int     `json:"maxDepth"`
+  Visitor       string  `json:"visitor"`
+  Direction     string  `json:"direction"`
+  Init          string  `json:"init"`
+  Expander      string  `json:"expander"`
+  Sort          string  `json:"sort"`
+  Strategy      string  `json:"strategy"`
+  Order         string  `json:"order"`
+  ItemOrder     string  `json:"itemOrder"`
+  Unique        Uniqueness `json:"uniqueness"`
+  MaxIter       int     `json:"maxIterations"`
+}
+
+type Uniqueness struct {
+  Edges     string `json:"edges"`
+  Vertices  string `json:"vertices"`
 }
