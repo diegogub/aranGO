@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Database
+// Database struct
 type Database struct {
 	Name        string `json:"name"`
 	Id          string `json:"id"`
@@ -18,13 +18,15 @@ type Database struct {
 	baseURL     string
 }
 
+/*
 type DatabaseResult struct {
 	Result []string `json:"result"`
 	Error  bool     `json:"error"`
 	Code   int      `json:"code"`
 }
+*/
 
-// Execute AQL query
+// Execute AQL query into server and returns cursor struct
 func (d *Database) Execute(q *Query) (*Cursor, error) {
 	if q == nil {
 		return nil, errors.New("Cannot execute nil query")
@@ -49,6 +51,7 @@ func (d *Database) Execute(q *Query) (*Cursor, error) {
 	}
 }
 
+// ExecuteTran executes transaction into the database
 func (d *Database) ExecuteTran(t *Transaction) error {
 	if t.Action == "" {
 		return errors.New("Action must not be nil")
@@ -134,7 +137,7 @@ func (db Database) buildRequest(t string, id string) string {
 	return r
 }
 
-// Returns Collection attached to current Database
+// Col returns Collection attached to current Database
 func (db Database) Col(name string) *Collection {
 	var col Collection
 	var found bool
@@ -154,7 +157,7 @@ func (db Database) Col(name string) *Collection {
 	return &col
 }
 
-// Collection functions
+// Create collections
 func (d *Database) CreateCollection(c *CollectionOptions) error {
 
 	reg, err := regexp.Compile(`^[A-z]+[0-9\-_]*`)
@@ -170,12 +173,15 @@ func (d *Database) CreateCollection(c *CollectionOptions) error {
 
 	switch resp.Status() {
 	case 200:
+    //push name into list
+		Collections(d)
 		return nil
 	default:
 		return errors.New("Failed to create collection")
 	}
 }
 
+//Drop Collection
 func (d *Database) DropCollection(name string) error {
 	resp, err := d.get("collection", name, "DELETE", nil, nil, nil)
 
@@ -191,6 +197,7 @@ func (d *Database) DropCollection(name string) error {
 	}
 }
 
+// Truncate collection
 func (d *Database) TruncateCollection(name string) error {
 	resp, err := d.send("collection", name+"/truncate", "PUT", nil, nil, nil)
 
@@ -211,7 +218,7 @@ func (d *Database) TruncateCollection(name string) error {
 }
 
 
-// Show if collection exist
+// ColExist checks if collection exist
 func (db *Database) ColExist(name string) bool {
   if name == "" {
     return false
@@ -229,6 +236,7 @@ func (db *Database) ColExist(name string) bool {
   }
 }
 
+// CheckCollection returns collection option based on name, nil otherwise
 func (d *Database) CheckCollection(name string) *CollectionOptions {
 	var col CollectionOptions
 	if name == "" {
