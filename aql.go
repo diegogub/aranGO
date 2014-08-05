@@ -67,6 +67,12 @@ type AqlStruct struct {
   //View        `json:"view"`
 }
 
+func (aq *AqlStruct) SetList(obj string,list string) *AqlStruct{
+  aq.main = obj
+  aq.list = list
+  return aq
+}
+
 func (aq *AqlStruct) Generate() string{
   q:= "FOR "+aq.main+" IN "+aq.list
 
@@ -112,13 +118,6 @@ func (aq *AqlStruct) AddGroup(gs map[string]Var,into string) *AqlStruct{
     }
     aq.lines = append(aq.lines,c)
   }
-  return aq
-}
-
-
-func (aq *AqlStruct) SetList(obj string,list string) *AqlStruct{
-  aq.main = obj
-  aq.list = list
   return aq
 }
 
