@@ -106,6 +106,15 @@ func Delete(db *Database, m Modeler) Error {
 	return err
 }
 
+func Unique(m interface{},db *Database,update bool, err Error){
+  val := Tags(m,"unique")
+  for fname, col:= range val {
+    field := reflectValue(m).FieldByName(fname)
+    json:= Tag(m,"json")
+    // search by example
+  }
+}
+
 func Validate(m interface{}, db *Database,col string, err Error){
 	checkRequired(m, err)
 	checkEnum(m, err)
@@ -134,6 +143,9 @@ func validate(m interface{}, db *Database, col string, err Error) {
 		}
 	}
 	return
+}
+
+func checkUnique(m interface{},db *Database,update bool,err Error){
 }
 
 func checkRequired(m interface{}, err Error) {
@@ -191,6 +203,15 @@ func checkField(m interface{}, fname string) bool {
 	return true
 }
 
+
+func Tag(obj interface{}, fname, key string) string {
+	if reflect.TypeOf(obj).Kind() != reflect.Struct && reflect.TypeOf(obj).Kind() != reflect.Ptr {
+		return ""
+	}
+	objValue ,_:= reflect.TypeOf(obj).Elem().FieldByName(fname)
+	return objValue.Tag.Get(key)
+}
+
 func Tags(obj interface{}, key string) map[string]string {
 	if reflect.TypeOf(obj).Kind() != reflect.Struct && reflect.TypeOf(obj).Kind() != reflect.Ptr {
 		return nil
@@ -209,6 +230,5 @@ func Tags(obj interface{}, key string) map[string]string {
 			tags[structField.Name] = tag
 		}
 	}
-
 	return tags
 }
