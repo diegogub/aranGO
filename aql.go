@@ -252,7 +252,7 @@ LET `+l.Var+` = (`
   return q
 }
 
-type Filters struct{
+type Filters struct {
   Key    string  `json:"key"`
   Filter []Pair  `json:"filters"`
 }
