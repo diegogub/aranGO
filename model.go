@@ -7,6 +7,12 @@ import (
 
 type Error map[string]string
 
+func NewError() Error {
+  var err Error
+  err = make(map[string]string)
+  return err
+}
+
 type Modeler interface {
 	// Returns current model key
 	GetKey() string
@@ -107,12 +113,14 @@ func Delete(db *Database, m Modeler) Error {
 }
 
 func Unique(m interface{},db *Database,update bool, err Error){
+  /*
   val := Tags(m,"unique")
   for fname, col:= range val {
     field := reflectValue(m).FieldByName(fname)
-    json:= Tag(m,"json")
+    json:= Tag(m,fname,"json")
     // search by example
   }
+  */
 }
 
 func Validate(m interface{}, db *Database,col string, err Error){

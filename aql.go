@@ -67,8 +67,12 @@ type AqlStruct struct {
   //View        `json:"view"`
 }
 
-func (aq *AqlStruct) SetList(obj string,list string) *AqlStruct{
+func (aq *AqlStruct) For(obj string) *AqlStruct{
   aq.main = obj
+  return aq
+}
+
+func (aq *AqlStruct) In(list string) *AqlStruct {
   aq.list = list
   return aq
 }
@@ -84,15 +88,23 @@ func (aq *AqlStruct) Generate() string{
 }
 
 // Custom struct while I implement more strutures
+func (aq *AqlStruct) Custom(code string) *AqlStruct{
+  var c Custom
+  c.Code = code
+  aq.lines = append(aq.lines,c)
+  return aq
+}
+
 type Custom struct {
   Code string
 }
 
 func (c Custom) Generate() string {
-  return c.Code
+  return `
+  `+c.Code
 }
 
-func (aq *AqlStruct) AddLoop(v string,list string) *AqlStruct {
+func (aq *AqlStruct) Loop(v string,list string) *AqlStruct {
   var l Loop
   if v != "" {
     l.Var = v
@@ -102,14 +114,14 @@ func (aq *AqlStruct) AddLoop(v string,list string) *AqlStruct {
   return aq
 }
 
-func (aq *AqlStruct) SetView(v map[string]interface{}) *AqlStruct {
+func (aq *AqlStruct) Return(v map[string]interface{}) *AqlStruct {
   var vie View
   vie = v
   aq.lines = append(aq.lines,vie)
   return aq
 }
 
-func (aq *AqlStruct) AddGroup(gs map[string]Var,into string) *AqlStruct{
+func (aq *AqlStruct) Group(gs map[string]Var,into string) *AqlStruct{
   if gs != nil {
     var c Collects
     c.Collect = gs
@@ -121,7 +133,7 @@ func (aq *AqlStruct) AddGroup(gs map[string]Var,into string) *AqlStruct{
   return aq
 }
 
-func (aq *AqlStruct) AddFilter(key string,values []Pair) *AqlStruct{
+func (aq *AqlStruct) Filter(key string,values []Pair) *AqlStruct{
   var fil Filters
   if key != "" && values != nil{
     fil.Key = key
@@ -210,7 +222,7 @@ LIMIT `+skip+`,`+limit
   return li
 }
 
-func (aq *AqlStruct) AddLimit(skip,limit int64) *AqlStruct{
+func (aq *AqlStruct) Limit(skip,limit int64) *AqlStruct{
   var l Limits
   l.Skip = skip
   l.Limit = limit
@@ -218,17 +230,21 @@ func (aq *AqlStruct) AddLimit(skip,limit int64) *AqlStruct{
   return aq
 }
 
-func (aq *AqlStruct) AddLet(v string,i interface{}) *AqlStruct{
+func (aq *AqlStruct) Let(v string,i interface{}) *AqlStruct{
+  // validate type
   switch i.(type){
     case string:
     case *AqlStruct:
     default:
       return aq
   }
+
   var f Lets
   if v != ""{
     f.Var = v
     f.Comm = i
+  }else{
+     return aq
   }
   aq.lines = append(aq.lines,f)
   return aq
@@ -254,7 +270,7 @@ LET `+l.Var+` = (`
 
 type Filters struct {
   Key    string  `json:"key"`
-  Filter []Pair  `json:"filters"`
+  Filter []Pair  `json:"conditions"`
 }
 
 type Pair struct {
