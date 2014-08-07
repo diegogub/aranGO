@@ -114,12 +114,41 @@ func Delete(db *Database, m Modeler) Error {
 
 func Unique(m interface{},db *Database,update bool, err Error){
   val := Tags(m,"unique")
+  var uniq bool
+  fvalue := reflectValue(m)
+  for fname, col:= range val {
+    field := fvalue.FieldByName(fname)
+    fty := fvalue.Type()
+    ftype ,ok:= fty.FieldByName(fname)
+    if ok {
+      if ftype.Anonymous && ftype.Type.Kind() == reflect.Struct {
+        unique(field,val,db,&uniq,update,err)
+      }else{
+      // search by example
+        c := db.Col(col)
+        uniq , _ = c.Unique(fname,field.String(),update,"")
+      }
+      if !uniq{
+        err[fname] = "not unique"
+      }
+    }
+  }
+}
+
+func unique(m reflect.Value,val map[string]string,db *Database,uniq *bool,update bool,err Error){
   for fname, col:= range val {
     field := reflectValue(m).FieldByName(fname)
-    // search by example
-    unique , _ := db.Col(col).Unique(fname,field.String(),update,"")
-    if !unique {
-      err[fname] = "not unique"
+    ftype ,ok:= field.Type().FieldByName(fname)
+    if ok {
+      if ftype.Anonymous && ftype.Type.Kind() == reflect.Struct {
+        unique(field,val,db,uniq,update,err)
+      }else{
+      // search by example
+        *uniq, _ = db.Col(col).Unique(fname,field.String(),update,"")
+      }
+      if !*uniq{
+        err[fname] = "not unique"
+      }
     }
   }
 }
@@ -222,9 +251,11 @@ func Tag(obj interface{}, fname, key string) string {
 }
 
 func Tags(obj interface{}, key string) map[string]string {
+
 	if reflect.TypeOf(obj).Kind() != reflect.Struct && reflect.TypeOf(obj).Kind() != reflect.Ptr {
 		return nil
 	}
+
 	var tag string
 
 	objValue := reflectValue(obj)
@@ -234,10 +265,37 @@ func Tags(obj interface{}, key string) map[string]string {
 
 	for i := 0; i < fieldsCount; i++ {
 		structField := objType.Field(i)
-		tag = structField.Tag.Get(key)
-		if tag != "" {
-			tags[structField.Name] = tag
-		}
+    if structField.Anonymous && structField.Type.Kind() == reflect.Struct {
+      getTags(structField.Type,tags,key)
+    }else{
+      tag = structField.Tag.Get(key)
+      if tag != "" {
+        tags[structField.Name] = tag
+      }
+    }
 	}
 	return tags
+}
+
+func getTags(obj reflect.Type,tags map[string]string,key string){
+
+	if obj.Kind() != reflect.Struct && obj.Kind() != reflect.Ptr {
+		return
+	}
+
+	var tag string
+
+	fieldsCount := obj.NumField()
+
+	for i := 0; i < fieldsCount; i++ {
+		structField := obj.Field(i)
+    if structField.Anonymous && structField.Type.Kind() == reflect.Struct {
+      getTags(obj,tags,key)
+    }else{
+      tag = structField.Tag.Get(key)
+      if tag != "" {
+        tags[structField.Name] = tag
+      }
+    }
+	}
 }
