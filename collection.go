@@ -319,7 +319,7 @@ func Collections(db *Database) error {
 
 
 // check if a key is unique
-func (c *Collection) Unique(key string, value interface{}, index string) (bool, error) {
+func (c *Collection) Unique(key string, value interface{}, update bool,index string) (bool, error) {
 	var cur *Cursor
 	var err error
 	switch index {
@@ -334,11 +334,32 @@ func (c *Collection) Unique(key string, value interface{}, index string) (bool, 
 		return false, err
 	}
 
-	if cur.Amount > 0 {
-		return false, nil
-	}
+  var result map[string]interface{}
+  result = make(map[string]interface{})
 
-	return true, nil
+  if !update {
+    if cur.Amount > 0 {
+      return false, nil
+    }else{
+      return true,nil
+    }
+  }else{
+    if cur.Amount ==  0 {
+      return false, nil
+    }else{
+      if cur.Amount == 1 {
+        cur.FetchOne(&result)
+        if result[key].(string) == value {
+          return true,nil
+        }else{
+          return false,nil
+        }
+      }else {
+        return false,nil
+      }
+    }
+	  return true, nil
+  }
 }
 
 // Simple Queries

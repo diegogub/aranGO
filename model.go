@@ -113,14 +113,15 @@ func Delete(db *Database, m Modeler) Error {
 }
 
 func Unique(m interface{},db *Database,update bool, err Error){
-  /*
   val := Tags(m,"unique")
   for fname, col:= range val {
     field := reflectValue(m).FieldByName(fname)
-    json:= Tag(m,fname,"json")
     // search by example
+    unique , _ := db.Col(col).Unique(fname,field.String(),update,"")
+    if !unique {
+      err[fname] = "not unique"
+    }
   }
-  */
 }
 
 func Validate(m interface{}, db *Database,col string, err Error){
