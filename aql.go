@@ -395,3 +395,33 @@ func (a *AqlUserFunction) Delete(db Database,name string) error{
       return nil
   }
 }
+
+type FullTextSearch struct {
+  Code  string
+  List  string
+}
+
+// Generate AQL Code to do fulltext search over multiple indexes using UNION to join lists
+func FullText(words []string,indexes []string,col string) *FullTextSearch{
+  var t FullTextSearch
+  var i,j int
+
+  lindex := 0
+  for i = 0 ; i<len(words) ; i++ {
+    for j = 0 ; j <len(indexes) ; j++ {
+      // add list to array
+      lindex++
+      t.Code += `LET l`+strconv.Itoa(lindex)+`=(FOR i IN FULLTEXT(test1,"`+indexes[j]+`","prefix:`+words[i]+`,|`+words[i]+`") RETURN i)
+      `
+    }
+  }
+  t.List = "UNION("
+  for i = 1 ; i < lindex ;i++{
+    t.List +="l"+strconv.Itoa(i)+","
+  }
+
+  t.List +="l"+strconv.Itoa(lindex)+")"
+
+  return &t
+}
+
