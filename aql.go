@@ -411,7 +411,7 @@ func FullText(words []string,indexes []string,col string) *FullTextSearch{
     for j = 0 ; j <len(indexes) ; j++ {
       // add list to array
       lindex++
-      t.Code += `LET l`+strconv.Itoa(lindex)+`=(FOR i IN FULLTEXT("`+col+`,"`+indexes[j]+`","prefix:`+words[i]+`,|`+words[i]+`") RETURN i)
+      t.Code += `LET l`+strconv.Itoa(lindex)+`=(FOR i IN FULLTEXT("`+col+`","`+indexes[j]+`","prefix:`+words[i]+`,|`+words[i]+`") RETURN i)
       `
     }
   }
