@@ -152,7 +152,17 @@ func (db Database) Col(name string) *Collection {
 	}
 
 	if !found {
-		return nil
+    if db.sess.safe {
+      panic("Collection "+name+" not found")
+    }else{
+      var col CollectionOptions
+      col.Name = name
+      err := db.CreateCollection(&col)
+      if err != nil {
+        panic(err)
+      }
+      return db.Col(name)
+    }
 	}
 	return &col
 }

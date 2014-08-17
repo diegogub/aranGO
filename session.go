@@ -9,6 +9,7 @@ import (
 
 type Session struct {
 	host string
+  safe bool
 	nap  *nap.Session
 	dbs  Databases
 }
@@ -219,4 +220,9 @@ func (s *Session) DB(name string) *Database {
 
 	return &db
 
+}
+
+func (s *Session) Safe(safe bool){
+  s.safe = safe
+  return
 }
