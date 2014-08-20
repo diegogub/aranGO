@@ -415,7 +415,7 @@ func FullText(words []string,indexes []string,col string) *FullTextSearch{
       `
     }
   }
-  t.List = "UNION("
+  t.List = "UNION_DISTINCT("
   for i = 1 ; i < lindex ;i++{
     t.List +="l"+strconv.Itoa(i)+","
   }
