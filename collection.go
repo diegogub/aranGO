@@ -361,7 +361,7 @@ func (c *Collection) Unique(key string, value interface{}, update bool,index str
   }
 }
 
-// Simple Queries
+// lSimple Queries
 func (c *Collection) All(skip, limit int) (*Cursor, error) {
 	var cur Cursor
   if skip < 0 || limit < 0 {
@@ -477,4 +477,187 @@ func (c *Collection) Any(doc interface{}) (error){
 	} else {
 		return errors.New("Failed to execute query")
 	}
+}
+
+//Create cap constraint
+func (c *Collection) SetCap(size int64,bysize int64) error{
+    if size == 0 && bysize == 0 {
+        return errors.New("Invalid num and byte size")
+    }
+
+    if bysize > 0 && bysize < 16384 {
+        return errors.New("Invalid byte size, must be at least 16384")
+    }
+
+    capindex := map[string]interface{}{ "type" : "cap" , "size" : size , "byteSize" : bysize }
+
+	res, err := c.db.send("index?collection="+c.Name, "", "POST", &capindex, nil, nil)
+    if err != nil {
+        return err
+    }
+
+    switch res.Status() {
+        case 400:
+            return errors.New("Invalid size or byte-size values")
+        case 404:
+            return errors.New("Collection does not exist")
+        default:
+            return nil
+    }
+}
+
+func (c *Collection) CreateHash(unique bool,fields ... string) error{
+    hashindex := map[string]interface{}{ "type" : "hash" , "unique" : unique , "fields" : fields }
+
+	res, err := c.db.send("index?collection="+c.Name, "", "POST", &hashindex, nil, nil)
+    if err != nil {
+        return err
+    }
+
+    switch res.Status() {
+        case 400:
+            return errors.New("There are documents violating the uniqueness")
+        case 404:
+            return errors.New("Collection does not exist")
+        default:
+            return nil
+    }
+}
+
+func (c *Collection) CreateSkipList(unique bool,fields ... string) error{
+    skiplist := map[string]interface{}{ "type" : "skiplist" , "unique" : unique , "fields" : fields }
+
+	res, err := c.db.send("index?collection="+c.Name, "", "POST", &skiplist, nil, nil)
+    if err != nil {
+        return err
+    }
+
+    switch res.Status() {
+        case 400:
+            return errors.New("There are documents violating the uniqueness")
+        case 404:
+            return errors.New("Collection does not exist")
+        default:
+            return nil
+    }
+}
+
+func (c *Collection) CreateGeoIndex(unique bool,geojson bool,fields ...string) error {
+    geoindex:= map[string]interface{}{ "type" : "geo" , "geoJson" : geojson ,"unique" : unique , "fields" : fields }
+
+	res, err := c.db.send("index?collection="+c.Name, "", "POST", &geoindex, nil, nil)
+    if err != nil {
+        return err
+    }
+
+    switch res.Status() {
+        case 400:
+            return errors.New("There are documents violating the uniqueness")
+        case 404:
+            return errors.New("Collection does not exist")
+        default:
+            return nil
+    }
+}
+
+func (c *Collection) Near(lat float64,lon float64,distance bool,geo string,skip, limit int) (*Cursor, error) {
+	var cur Cursor
+    if skip < 0 || limit < 0{
+        return nil, errors.New("Invalid skip or limit")
+    }
+    var query map[string]interface{}
+    if distance {
+        query = map[string]interface{}{"collection": c.Name, "latitude": lat ,"longitude": lon, "distance" : "distance", "skip": skip, "limit": limit}
+    }else{
+        query = map[string]interface{}{"collection": c.Name, "latitude": lat ,"longitude": lon, "skip": skip, "limit": limit}
+    }
+
+    if len(geo) > 0 {
+        query["geo"] = geo
+    }
+
+	res, err := c.db.send("simple", "near", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+func (c *Collection) WithIn(radius float64,lat float64,lon float64,distance bool,geo string,skip, limit int) (*Cursor, error) {
+	var cur Cursor
+    if skip < 0 || limit < 0{
+        return nil, errors.New("Invalid skip or limit")
+    }
+    var query map[string]interface{}
+
+    if distance {
+        query = map[string]interface{}{"collection": c.Name, "radius" : radius,"latitude": lat ,"longitude": lon, "distance" : "distance", "skip": skip, "limit": limit}
+    }else{
+        query = map[string]interface{}{"collection": c.Name, "radius" : radius,"latitude": lat ,"longitude": lon, "skip": skip, "limit": limit}
+    }
+
+    if len(geo) > 0 {
+        query["geo"] = geo
+    }
+
+	res, err := c.db.send("simple", "near", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+func (c *Collection) CreateFullText(min int,fields ...string) error {
+    full := map[string]interface{}{ "type" : "fulltext" , "minLength" : min, "fields" : fields }
+
+	res, err := c.db.send("index?collection="+c.Name, "", "POST", &full, nil, nil)
+    if err != nil {
+        return err
+    }
+
+    switch res.Status() {
+        case 404:
+            return errors.New("Collection does not exist")
+        default:
+            return nil
+    }
+}
+
+
+func (c *Collection) FullText(q string,atr string,skip, limit int) (*Cursor, error) {
+	var cur Cursor
+    if skip < 0 || limit < 0{
+        return nil, errors.New("Invalid skip or limit")
+    }
+
+    query := map[string]interface{}{"collection": c.Name, "query": q,"attribute": atr, "skip": skip, "limit": limit}
+	res, err := c.db.send("simple", "fulltext", "PUT", query, &cur, &cur)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Status() == 201 {
+		return &cur, nil
+	} else {
+		return nil, errors.New("Failed to execute query")
+	}
+}
+
+type Index struct {
+    Id      string `json:"id"`
+    Type    string `json:"type"`
+    Unique  string `json:"unique"`
 }
