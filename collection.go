@@ -1,7 +1,6 @@
 package aranGO
 
 // TODO Must Implement revision control
-
 import (
 	"errors"
 	nap "github.com/jmcvetta/napping"
@@ -18,9 +17,8 @@ type CollectionOptions struct {
 	System   bool                   `json:"isSystem,omitempty"`
 	Volatile bool                   `json:"isVolatile,omitempty"`
 	Keys     map[string]interface{} `json:"keyOptions,omitempty"`
-
-  // Count
-  Count   int64      `json:"count"`
+    // Count
+    Count    int64     `json:"count"`
 	// Cluster
 	Shards    int      `json:"numberOfShards,omitempty"`
 	ShardKeys []string `json:"shardKeys,omitempty"`
@@ -82,6 +80,7 @@ func (col *Collection) Load() error {
   }
 }
 
+//Count all documents in collection
 func (col *Collection) Count() int64{
   var cop CollectionOptions
   res,err := col.db.get("collection",col.Name+"/count","GET",nil,&cop,&cop)
@@ -363,7 +362,6 @@ func (c *Collection) Unique(key string, value interface{}, update bool,index str
 }
 
 // Simple Queries
-
 func (c *Collection) All(skip, limit int) (*Cursor, error) {
 	var cur Cursor
   if skip < 0 || limit < 0 {
@@ -383,6 +381,7 @@ func (c *Collection) All(skip, limit int) (*Cursor, error) {
 	}
 }
 
+//Simple query by example
 func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) {
 	var cur Cursor
   if skip < 0 || limit < 0{
@@ -416,67 +415,6 @@ func (c *Collection) First(example, doc interface{}) error {
 		return nil
 	} else {
 		return errors.New("Failed to execute query")
-	}
-}
-
-//Example query using hash index
-func (c *Collection) ExampleHash(doc interface{},skip int,limit int,index string) (*Cursor,error){
-	var cur Cursor
-  if skip < 0 || limit < 0 {
-    return nil, errors.New("Invalid skip or limit")
-  }
-  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
-	res, err := c.db.send("simple", "by-example-hash", "PUT", query, &cur, &cur)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Status() == 201 {
-		return &cur, nil
-	} else {
-		return nil, errors.New("Failed to execute query")
-	}
-}
-
-//Example query using skip-list index
-func (c *Collection) ExampleSkip(doc interface{},skip int,limit int,index string) (*Cursor,error){
-	var cur Cursor
-  if skip < 0 || limit < 0 {
-    return nil, errors.New("Invalid skip or limit")
-  }
-  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
-	res, err := c.db.send("simple", "by-example-skiplist", "PUT", query, &cur, &cur)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Status() == 201 {
-		return &cur, nil
-	} else {
-		return nil, errors.New("Failed to execute query")
-	}
-}
-
-
-//Example query using bitarray index
-func (c *Collection) ExampleBitArray(doc interface{},skip int,limit int,index string) (*Cursor,error){
-	var cur Cursor
-  if skip < 0 || limit < 0 {
-    return nil, errors.New("Invalid skip or limit")
-  }
-  query := map[string]interface{}{"collection": c.Name, "index" : index,"example": doc, "skip": skip, "limit": limit}
-	res, err := c.db.send("simple", "by-example-bitarray", "PUT", query, &cur, &cur)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Status() == 201 {
-		return &cur, nil
-	} else {
-		return nil, errors.New("Failed to execute query")
 	}
 }
 
