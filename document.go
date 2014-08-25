@@ -12,12 +12,9 @@ type Document struct {
 
 	Error   bool   `json:"-"`
 	Message string `json:"-"`
-  /*
-	Code    int    `json:"code,omitempty"`
-	Num     int    `json:"errorNum,omitempty"`
-  */
 }
 
+// Creates base document structure
 func NewDocument(id string) (*Document, error) {
 	// some basic validation
 	sid := strings.Split(id, "/")
@@ -31,6 +28,18 @@ func NewDocument(id string) (*Document, error) {
 	d.Id = id
 	d.Key = sid[1]
 	return &d, nil
+}
+
+// Return map[string]string of document instead of struct
+func (d *Document) Map(db *Database) (map[string]string,error) {
+    var m map[string]string
+	sid := strings.Split(d.Id, "/")
+    m = make(map[string]string)
+    err := db.Col(sid[0]).Get(sid[1],&m)
+    if err != nil {
+        return m,err
+    }
+    return m,nil
 }
 
 func (d *Document) SetKey(key string) error {

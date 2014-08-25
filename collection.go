@@ -479,6 +479,34 @@ func (c *Collection) Any(doc interface{}) (error){
 	}
 }
 
+//Get all indexs
+func (c *Collection) Indexes() (map[string]Index,error){
+    var indexes Indexes
+    _,err := c.db.get("index?collection="+c.Name,"","GET",nil,&indexes,&indexes)
+    if err != nil {
+        return indexes.IndexMap,err
+    }
+
+    return indexes.IndexMap,err
+}
+
+// Delete Index
+func (c *Collection) DeleteIndex(id string) (error){
+    if id == "" {
+        return errors.New("Invalid id")
+    }
+    res, err = col.db.get("index","id", "DELETE", nil, nil, nil)
+    if err != nil {
+        return err
+    }
+
+    if res.Status() == 404 {
+        return errors.New("Index does not exist")
+    }
+
+    return nil
+}
+
 //Create cap constraint
 func (c *Collection) SetCap(size int64,bysize int64) error{
     if size == 0 && bysize == 0 {
@@ -656,8 +684,16 @@ func (c *Collection) FullText(q string,atr string,skip, limit int) (*Cursor, err
 	}
 }
 
+type Indexes struct {
+   Indexes  []Index
+   IndexMap map[string]Index  `json:"identifiers"`
+}
+
 type Index struct {
-    Id      string `json:"id"`
-    Type    string `json:"type"`
-    Unique  string `json:"unique"`
+    Id          string `json:"id"`
+    Type        string `json:"type"`
+    Unique      bool   `json:"unique"`
+    MinLength   int    `json:"minLength"`
+    Fields      []string `json:"fields"`
+    Size        int64   `json:"size"`
 }

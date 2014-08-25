@@ -9,7 +9,7 @@ import (
 
 type Session struct {
 	host string
-  safe bool
+    safe bool
 	nap  *nap.Session
 	dbs  Databases
 }

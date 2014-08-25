@@ -2,7 +2,6 @@ package aranGO
 
 import "testing"
 import "log"
-import "encoding/json"
 
 type Sub struct{
   SubAt  string `unique:"users"`
@@ -19,52 +18,24 @@ type DocTest struct {
 func TestExample(t *testing.T) {
   // connect
   log.Println("start test")
-  s,err := Connect("http://pampa.dev:8529","diego","test",false)
+  s,err := Connect("http://localhost:8529","diego","test",true)
   if err != nil{
     panic(err)
   }
-  db := s.DB("pampa")
-
-  col := db.Col("users")  
-  uniq ,_:= col.Unique("Username","probando",true,"")
-
-  log.Println(uniq)
-
-  var test DocTest
-  var e Error
-  e = make(map[string]string)
-
-  Unique(test,db,true,e)
-
-  if db == nil {
-    panic("invalid db")
+  db := s.DB("_system")
+  /*
+  doc ,_:= NewDocument("persons/122636867")
+  for i:=0 ; i<1000; i++ {
+    m,err := doc.Map(db)
+    log.Println(i,m)
+    if err != nil {
+        panic(err)
+    }
   }
-
-  var q AqlStruct
-
-  type F struct {
-    Filters []Filters `json:"filters"`
-  }
-  var f F
-
-  post := `{ "filters" : [  {"conditions" : [ { "obj": "ops" , "op":"==" , "val":"1" },{ "obj": "type" , "op":"==" , "val":"CPM" }]}]    }`
-
-  err = json.Unmarshal([]byte(post),&f)
+  */
+  c, err :=db.Col("persons").Indexes()
+  log.Println(c)
   if err != nil {
     panic(err)
   }
-  log.Println(f)
-  q.For("acc").In("accounts")
-  q.Filter("acc",f.Filters[0].Filter)
-//q.Return(map[string]interface{}{ "acc" : "acc"})
-  q.Custom("RETURN acc")
-
-
-  w :=  []string{ "Pot","Jon","snow"}
-  in := []string{ "name", "surname" }
-  c := "test1"
-
-  text := FullText(w,in,c)
-  log.Println(text)
-
 }

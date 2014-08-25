@@ -16,7 +16,6 @@ type Query struct {
 	Options  map[string]interface{} `json:"options,omitempty"`
   // opetions fullCount bool
   // Note that the fullCount sub-attribute will only be present in the result if the query has a LIMIT clause and the LIMIT clause is actually used in the query.
-
 	// Control
 	Validate bool   `json:"-"`
 	ErrorMsg string `json:"errorMessage,omitempty"`
