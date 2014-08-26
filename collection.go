@@ -495,7 +495,8 @@ func (c *Collection) DeleteIndex(id string) (error){
     if id == "" {
         return errors.New("Invalid id")
     }
-    res, err = col.db.get("index","id", "DELETE", nil, nil, nil)
+
+    res, err := c.db.get("index","id", "DELETE", nil, nil, nil)
     if err != nil {
         return err
     }
