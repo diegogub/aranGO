@@ -31,41 +31,41 @@ type DocTest struct {
   Likes    []string
 }
 ~~~~
+
+Connecting and creating collections
+===================================
 ~~~
- // Connecting to arangoDB
- // change false to true if you want to see every http request
- s,err := ara.Connect("http://localhost:8529","diego","test",false) 
-
-  if err != nil{
-    panic(err)
-  }
-  // create DB
-  s.CreateDB("test",nil)
-
-  // create Collections to test
-  edges := NewCollectionOptions("edges",true)
-  edges.IsEdge()
-  log.Println(s.DB("test").ColExist("docs1"))
-  if !s.DB("test").ColExist("docs1"){
-    docs1 := NewCollectionOptions("docs1",true)
-    s.DB("test").CreateCollection(docs1)
-  }
-
-  if !s.DB("test").ColExist("docs2"){
-    docs2 := NewCollectionOptions("docs2",true)
-    s.DB("test").CreateCollection(docs2)
-  }
-
-  if !s.DB("test").ColExist("ed"){
-    edges := NewCollectionOptions("ed",true)
-    edges.IsEdge() // set to Edge
-    err = s.DB("test").CreateCollection(edges)
-    if err != nil {
-     panic(err)
+    //change false to true if you want to see every http request
+    //Connect(host, user, password string, log bool) (*Session, error) {
+    s,err := ara.Connect("http://localhost:8529","diego","test",false) 
+    if err != nil{
+        panic(err)
     }
-  }
+
+    // CreateDB(name string,users []User) error
+    s.CreateDB("test",nil)
+
+    // create Collections test if exist
+    if !s.DB("test").ColExist("docs1"){
+        // CollectionOptions has much more options, here we just define name , sync
+        docs1 := NewCollectionOptions("docs1",true)
+        s.DB("test").CreateCollection(docs1)
+    }
+
+    if !s.DB("test").ColExist("docs2"){
+        docs2 := NewCollectionOptions("docs2",true)
+        s.DB("test").CreateCollection(docs2)
+    }
+
+    if !s.DB("test").ColExist("ed"){
+        edges := NewCollectionOptions("ed",true)
+        edges.IsEdge() // set to Edge
+        s.DB("test").CreateCollection(edges)
+    }
 ~~~~
 
+Create and Relate documents
+===========================
 ~~~
   var d1,d2 DocTest
   d1.Name = "Diego"
