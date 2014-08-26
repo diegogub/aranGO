@@ -23,8 +23,10 @@ type Modeler interface {
 	// hooks
 	PreSave(err Error)
 	PostSave(err Error)
+
 	PreUpdate(err Error)
 	PostUpdate(err Error)
+
 	PreDelete(err Error)
 	PostDelete(err Error)
 }

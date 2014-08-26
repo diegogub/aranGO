@@ -2,7 +2,7 @@ package aranGO
 
 import (
 	"errors"
-	nap "github.com/jmcvetta/napping"
+	nap "github.com/diegogub/napping"
 	"net/url"
   "regexp"
 )

@@ -3,7 +3,7 @@ package aranGO
 // TODO Must Implement revision control
 import (
 	"errors"
-	nap "github.com/jmcvetta/napping"
+	nap "github.com/diegogub/napping"
 )
 
 // Options to create collection
