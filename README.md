@@ -15,9 +15,18 @@ Here are the things you can do until now:
   * Execute transactions
   * Execute AQL
 
+
+
 I'm planning to cover all functionalities after stable 2.2.0 realease, hopefully next week
 
 Any ideas for the driver or bug fixes please feel free to create a issue or pull-request to dev :)
+
+
+Documentation
+============
+
+https://gowalker.org/github.com/diegogub/aranGO
+
 
 Basic Usage
 ===========
