@@ -1,5 +1,5 @@
 package aranGO
-
+/*
 import (
     "errors"
     "strconv"
@@ -50,6 +50,7 @@ func (q *Query) MustCheck() {
 	return
 }
 
+//Interface to implement in order to add new sentence type in AQL
 type AqlStructer interface{
   Generate()     string
 }
@@ -424,3 +425,4 @@ func FullText(words []string,indexes []string,col string) *FullTextSearch{
   return &t
 }
 
+*/
