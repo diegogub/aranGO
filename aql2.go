@@ -748,6 +748,182 @@ func (aql AqlLet) Generate() string {
   return code
 }
 
+//Aql INSERT
+// Usage:
+//   Insert(Obj{ "name" : Atr("u","name") , "test" : 2},"backup")
+func (aq *AqlStruct) Insert(obj Obj,col string) *AqlStruct {
+  if col == "" {
+    return aq
+  }
+  var aqi AqlInsert
+  aqi.Data = obj
+  aqi.Col = col
+  aq.lines = append(aq.lines,aqi)
+ return aq
+}
+
+type AqlInsert struct {
+  Data Obj
+  Col  string
+}
+
+func (aqi AqlInsert) Generate() string {
+  if aqi.Col == "" {
+    return ""
+  }
+
+  code := "INSERT "+aqi.Data.String()+" IN "+aqi.Col
+
+  return code
+}
+
+//Aql UPDATE
+// Usage:
+//
+func (aq *AqlStruct) Update(doc interface{},with Obj,col string,options interface{}) *AqlStruct{
+  var aqu AqlUpdate
+  if col == "" {
+    return aq
+  }
+
+  aqu.Doc = doc
+  aqu.Col = col
+  aqu.With = with
+  aqu.Options = options
+  aq.lines = append(aq.lines,aqu)
+  return aq
+}
+
+type AqlUpdate struct{
+  Doc     interface{}
+  Col     string
+  With    Obj
+  Options interface{}
+}
+
+func (aqu AqlUpdate) Generate() string {
+  if aqu.Col == "" {
+    return ""
+  }
+  var code string
+
+  code = "UPDATE "
+
+  switch aqu.Doc.(type) {
+    case Obj:
+      code += aqu.Doc.(Obj).String()
+    case string:
+      code += aqu.Doc.(string)
+    case Var:
+      code += aqu.Doc.(Var).String()
+    default:
+      return ""
+  }
+
+  code += " WITH "+aqu.With.String()+" IN "+aqu.Col
+
+  switch aqu.Options.(type) {
+    case Obj:
+      code += " OPTIONS "+aqu.Options.(Obj).String()
+    default:
+  }
+
+  return code
+}
+
+//Aql Replace
+//Usage:
+//  Replace("u._id",Obj{ "name" : "Diego" },"users",nil)
+func (aq *AqlStruct) Replace(id interface{},replace Obj,col string,options interface{}) *AqlStruct {
+  if col == "" {
+    return aq
+  }
+  var aqr AqlReplace
+  aqr.Id = id
+  aqr.Repl = replace
+  aqr.Col = col
+  aqr.Options = options
+  aq.lines = append(aq.lines,aqr)
+  return aq
+}
+
+type AqlReplace struct {
+  Id      interface{}
+  Repl    Obj
+  Col     string
+  Options interface{}
+}
+
+func (aqr AqlReplace) Generate() string {
+  var code string
+
+  code  = "REPLACE "
+  switch aqr.Id.(type) {
+     case string:
+       code += aqr.Id.(string)
+     case Var:
+       code += aqr.Id.(Var).String()
+  }
+
+  code += " WITH "+aqr.Repl.String()+" IN "+aqr.Col
+
+  switch aqr.Options.(type) {
+    case Obj:
+      code += " OPTIONS "+aqr.Options.(Obj).String()
+    default:
+  }
+
+  return code
+}
+
+//Aql Remove
+//Usage:
+// Remove("u._id","users",nil)
+func (aq *AqlStruct) Remove(id interface{},col string,options interface{}) *AqlStruct {
+  if col == "" {
+    return aq
+  }
+  var aqr AqlRemove
+
+  aqr.Id = id
+  aqr.Col = col
+  aqr.Options = options
+
+  aq.lines = append(aq.lines,aqr)
+
+  return aq
+}
+
+type AqlRemove struct {
+  Id  interface{}
+  Col string
+  Options interface{}
+}
+
+func (aqr AqlRemove) Generate() string {
+  if aqr.Col == "" {
+    return ""
+  }
+  var code string
+  code = "REMOVE "
+  switch aqr.Id.(type) {
+     case string:
+       code += aqr.Id.(string)
+     case Var:
+       code += aqr.Id.(Var).String()
+     default:
+       return ""
+  }
+
+  code += " IN "+aqr.Col
+  switch aqr.Options.(type) {
+    case Obj:
+      code += " OPTIONS "+aqr.Options.(Obj).String()
+    default:
+  }
+
+  return code
+}
 // Aql functions
 type AqlFunction struct {
     Name    string
