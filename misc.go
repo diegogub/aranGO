@@ -25,3 +25,9 @@ func subParse(i map[string]interface{},doc interface{}) error{
   err = json.Unmarshal(b,doc)
   return err
 }
+
+func isJSON(s string) bool {
+    var js map[string]interface{}
+    return json.Unmarshal([]byte(s), &js) == nil
+
+}
