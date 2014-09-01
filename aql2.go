@@ -2,7 +2,6 @@ package aranGO
 
 import (
     "errors"
-    "log"
     "strings"
     "strconv"
     "encoding/json"
@@ -377,7 +376,6 @@ func (aq *AqlStruct) Filter(f ... interface{}) (*AqlStruct){
             case Filter:
                 if any {
                     fil2.Filters = append(fil2.Filters,i.(Filter))
-                    log.Println(fil2.Filters[0])
                     continue
                 }else{
                     fil.DefaultKey = key
@@ -545,7 +543,6 @@ func (f Filter)  String(key string) string{
     }
 
     if f.Function != nil {
-        log.Println(f.Function.Generate())
         return f.Function.Generate()
     }
 
@@ -577,17 +574,14 @@ func (aq *AqlStruct) Sort(i ... interface{}) (*AqlStruct){
             case string:
                s := p.(string)
                if  s == "DESC" || s == "ASC" {
-                    log.Println("sort")
                     so.Direction = s
                 }else{
-                    log.Println("var")
                     so.Variable= s
                 }
             case Var:
                 so.Variable= p.(Var)
         }
         sort.List = append(sort.List,so)
-        log.Println(sort)
     }
     if len(sort.List) > 0 {
         aq.lines = append(aq.lines,sort)

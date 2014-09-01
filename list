@@ -1,7 +1,0 @@
-databases------OK
-documents------OK
-edges----------OK
-cursor---------OK
-aql------------missing explain, coding aqlbuilder
-collections----OK
-graph----------need testing
