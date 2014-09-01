@@ -54,8 +54,12 @@ func (ob Obj) String() string{
                 pair += strconv.FormatInt(val.(int64),10)
             case int64:
                 pair += strconv.FormatInt(val.(int64),10)
-            case AqlStruct,*AqlStruct, AqlFunction:
+            case AqlStruct,*AqlStruct:
                 pair += "( "+val.(*AqlStruct).Generate()+" )"
+            case AqlFunction:
+                pair += val.(*AqlFunction).Generate()
+            default:
+                pair += genValue(val)
         }
         aux = append(aux,pair)
     }
@@ -707,6 +711,43 @@ func (aqc AqlCollect) Generate() string{
   return "COLLECT "+aqc.Sentence
 }
 
+//Aql Let
+func (aq *AqlStruct) Let(v string,i interface{}) *AqlStruct{
+  var let AqlLet
+
+  if v == "" {
+    return aq
+  }
+  let.Var = v
+  let.Exp = i
+  aq.lines = append(aq.lines,let)
+  return aq
+
+}
+
+type AqlLet struct {
+  Var string
+  Exp interface{}
+}
+
+func (aql AqlLet) Generate() string {
+  if aql.Var == "" {
+    return ""
+  }
+
+  code := "LET "+aql.Var+" = "
+  switch aql.Exp.(type) {
+    case AqlFunction:
+      code += aql.Exp.(AqlFunction).Generate()
+    case *AqlStruct:
+      code += "( "+aql.Exp.(*AqlStruct).Generate()+" )"
+    default:
+      code += genValue(aql.Exp)
+  }
+
+  return code
+}
+
 // Aql functions
 type AqlFunction struct {
     Name    string
@@ -733,6 +774,8 @@ func (f AqlFunction) Generate() string {
 
     for _,param := range f.Params {
         switch param.(type){
+            case AqlFunction:
+                aux = param.(AqlFunction).Generate()
             case bool:
                 aux = strconv.FormatBool(param.(bool))
             case Var:
