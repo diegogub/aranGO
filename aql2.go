@@ -11,6 +11,7 @@ import (
 // AqlObject
 type Obj map[string]interface{}
 
+// AqlList
 type List []interface{}
 
 func (l List) String() string{
@@ -63,9 +64,17 @@ func (ob Obj) String() string{
     return code
 }
 
+// AQL Variable
 type Var struct {
     Obj     string
     Name    string
+}
+
+// Represent AQL collection 
+func Col(name string) Var {
+    var v Var
+    v.Obj = name
+    return v
 }
 
 func Atr(obj,name string) Var {
@@ -76,11 +85,16 @@ func Atr(obj,name string) Var {
 }
 
 func (v Var) String() string{
-    if v.Obj == "" || v.Name == ""{
-        return ""
+    if v.Obj != "" && v.Name == "" {
+        return v.Obj
     }
-    q := v.Obj+"."+v.Name
-    return q
+
+    if v.Obj != "" && v.Name != ""{
+        q := v.Obj+"."+v.Name
+        return q
+    }
+
+    return ""
 }
 
 // Aql query
@@ -140,6 +154,7 @@ type AqlStruct struct {
     err   bool
 }
 
+//Generate Aql query string 
 func (aq *AqlStruct) Generate() string {
     if len(aq.lines) == 0 {
         return ""
@@ -157,6 +172,13 @@ func (aq *AqlStruct) Generate() string {
 func NewAqlStruct() *AqlStruct{
     var aq AqlStruct
     return &aq
+}
+
+//Execute AqlStuct into database
+func (aq *AqlStruct) Execute(db *Database) (*Cursor,error){
+    q := NewQuery(aq.Generate())
+    c,err := db.Execute(q)
+    return c,err
 }
 
 // Returns sub struct with same var context
@@ -252,29 +274,40 @@ func (aq *AqlStruct) Return(view interface{}) *AqlStruct {
     return aq
 }
 
-// Aql FILTER
-/*
-    Could be use like:
-        - Filter(custom ... string)
-            example:
-                Filter("u.name == 'Diego' && u.age > 20")
-                out:
-                    FILTER u.name == 'Diego' && u.age > 21
-
-        - Filter(key string,fil ... Filter, any bool)
-            example:
-                Filter("u",Fil("sum","eq",213),Fil("age","gt",21),true)
-                out:
-                    FILTER u.sum == 213 || u.age > 21
-                Filter("u",Fil("sum","eq",213),FilField("id","==","adm.id"),false)
-                out:
-                    FILTER u.sum == 213
-                    FILTER u.id == adm.id 
-        - 
-
-
-
-*/
+//Aql filter add Filter()  to AqlQuery
+// Could be use like:
+//        - Filter(custom ... string)
+//            example:
+//                Filter("u.name == 'Diego' && u.age > 20")
+//                out:
+//                    FILTER u.name == 'Diego' && u.age > 21
+//        - Filter(key string,fil ... Filter || AqlFunction, any bool)
+//            example:
+//                Filter("u",Fil("sum","eq",213),Fil("age","gt",21),true)
+//                out:
+//                    FILTER u.sum == 213 || u.age > 21
+//                Filter("u",Fil("sum","eq",213),FilField("id","==","adm.id"),false)
+//                out:
+//                    FILTER u.sum == 213
+//                    FILTER u.id == adm.id 
+//                Filter("u",Fil("sum","eq",213),FilField("id","==","adm.id"),false)
+//                out:
+//                    FILTER u.sum == 213
+//                    FILTER u.id == adm.id 
+//                Filter("u",Fun("LIKE",Atr("u","name"),"di%",true)
+//                out:
+//                    FILTER u.age > 21  ||  LIKE(u.name,'di%',true)
+//        -FILTER(jsonFilter string) 
+//          example:
+//            Filter(`{ "key" : "u" , "filters": [{ "name": "name", "like": "gt", "val": "die%" },{ "name": "status", "op": "eq", "val":"A"}] }`)
+//            out:
+//                FILTER (IS_NULL(u.name) == false && LIKE(u.name,'die%',true)) && u.status == 'A' 
+//            Filter(`{ "key" : "u" , "filters": [{ "name": "status", "op": "==", "val": "P" },{ "name": "status", "op": "eq", "val":"A"}], "any" : true }`)
+//            out:
+//                FILTER u.status == 'P' || u.status == 'A'
+//            Filter(`{ "key" : "u" , "filters": [{ "name": "id", "op": "==", "field": "adm.id" },{ "name": "status", "op": "eq", "val":"A"}], "any" : true }`)
+//            out:
+//                Filter(`{ "key" : "u" , "filters": [{ "name": "id", "op": "==", "field": "adm.id" },{ "name": "status", "op": "eq", "val":"A"}], "any" : true }`)
 func (aq *AqlStruct) Filter(f ... interface{}) (*AqlStruct){
     // no parameters
     if len(f) == 0 {
@@ -427,6 +460,7 @@ func (aqf AqlFilter) Generate() string {
     return code
 }
 
+// Returns AqlFilter parsing valid json string
 func FilterJSON(s string) AqlFilter{
     var aqf AqlFilter
     json.Unmarshal([]byte(s), &aqf)
@@ -451,9 +485,9 @@ type Filter struct {
     <, lt
     >=, ge, gte, geq
     <=, le, lte, leq
+    like
 
     To implement
-    like
     is_null
     is_not_null
     in, not_in
@@ -498,10 +532,16 @@ func (f Filter)  String(key string) string{
             f.Oper = ">="
         case "<=","le","lte":
             f.Oper = "<="
+        case "like":
+            // auxiliar function,
+            NotNull := "(IS_NULL("+Atr(key,f.AtrR).String()+") == false && "
+            fun := Fun("LIKE",Atr(key,f.AtrR),f.Value,true)
+            return NotNull+ fun.Generate() +")"
         // operator as "like" should create corresponding AqlFunction
     }
 
     if f.Function != nil {
+        log.Println(f.Function.Generate())
         return f.Function.Generate()
     }
 
@@ -515,6 +555,145 @@ func (f Filter)  String(key string) string{
         }
     }else{
         code += genValue(f.Value)
+    }
+
+    return code
+}
+
+//Aql Sort
+func (aq *AqlStruct) Sort(i ... interface{}) (*AqlStruct){
+    var sort AqlSort
+    for _,p := range i {
+        var so Sort
+        switch p.(type) {
+            case string:
+               s := p.(string)
+               if  s == "DESC" || s == "ASC" {
+                    log.Println("sort")
+                    so.Direction = s
+                }else{
+                    log.Println("var")
+                    so.Variable= s
+                }
+            case Var:
+                so.Variable= p.(Var)
+        }
+        sort.List = append(sort.List,so)
+        log.Println(sort)
+    }
+    if len(sort.List) > 0 {
+        aq.lines = append(aq.lines,sort)
+    }
+
+    return aq
+}
+
+type AqlSort struct {
+    List []Sort `json:"sort"`
+}
+
+func (aqs AqlSort) Generate() string {
+    var list []string
+    var code,aux string
+    i := 0
+    for _,s := range aqs.List {
+        aux = s.String()
+        if aux != ""{
+            if aux != "DESC" && aux != "ASC" {
+                list = append(list,aux)
+                i++
+            }else{
+                list[i-1] += " "+aux
+            }
+        }
+    }
+    code = "SORT "+strings.Join(list,",")
+
+    return code
+}
+
+type Sort struct {
+    Variable  interface{} `json:"field"`
+    Direction string      `json:"direction,omitempty"`
+}
+
+func (s Sort) String() string {
+    var code string
+    switch s.Variable.(type) {
+        case string:
+            aux := strings.Split(s.Variable.(string),".")
+            if len(aux) == 2{
+                code += s.Variable.(string)
+            }
+        case Var:
+            code += s.Variable.(Var).String()
+        case nil:
+            return s.Direction
+    }
+
+    return code
+}
+
+
+// Aql functions
+type AqlFunction struct {
+    Name    string
+    Params  []interface{}
+}
+
+//Creates a AqlFunction to use into AqlStruct
+func Fun(name string, i ... interface{}) AqlFunction{
+    var f AqlFunction
+    f.Name   = name
+    f.Params = i
+    return f
+}
+
+func (f AqlFunction) Generate() string {
+    code := f.Name
+    if len(f.Params) == 0 {
+        code += "()"
+        return code
+    }
+
+    var ParamList []string
+    var aux string
+
+    for _,param := range f.Params {
+        switch param.(type){
+            case bool:
+                aux = strconv.FormatBool(param.(bool))
+            case Var:
+                aux = param.(Var).String()
+            case int:
+                aux = strconv.Itoa(param.(int))
+            case int32:
+                aux = strconv.FormatInt(param.(int64),10)
+            case int64:
+                aux = strconv.FormatInt(param.(int64),10)
+            case float64:
+                aux = strconv.FormatFloat(param.(float64), 'f', 6, 64)
+            case string:
+                aux = "'"+param.(string)+"'"
+            case *AqlFunction:
+                aux = param.(AqlFunction).Generate()
+            case []string:
+                aux = "["+strings.Join(param.([]string),", ")+"]"
+            case List:
+                aux = param.(List).String()
+            case nil:
+                aux = ""
+            default:
+                aux = ""
+        }
+        if aux != "" {
+            ParamList = append(ParamList,aux)
+            aux = ""
+        }
+    }
+
+    if len(ParamList) > 0 {
+        code += "("+strings.Join(ParamList,",")+")"
     }
 
     return code
@@ -543,28 +722,4 @@ func genValue (v interface{}) string{
         q = "null"
     }
     return q
-}
-
-// Aql functions
-type AqlFunction struct {
-    Name string
-    Params []interface{}
-}
-
-func Fun(name string, i ... interface{}) AqlFunction{
-    var f AqlFunction
-    f.Name   = name
-    f.Params = i
-    return f
-}
-
-func (f AqlFunction) Generate() string {
-    code := f.Name
-    for _,param := range f.Params {
-        switch param.(type){
-
-
-        }
-    }
-    return code
 }
