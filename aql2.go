@@ -561,6 +561,10 @@ func (f Filter)  String(key string) string{
 }
 
 //Aql Sort
+// Usage:
+//  Sort("u.name","u.age","ASC","u.created","DESC")
+// or
+//  Sort(Atr("u","name),Atr("u","age"),"ASC",Var("u","created"),"DESC")
 func (aq *AqlStruct) Sort(i ... interface{}) (*AqlStruct){
     var sort AqlSort
     for _,p := range i {
@@ -634,6 +638,74 @@ func (s Sort) String() string {
     return code
 }
 
+
+type AqlLimit struct {
+  Skip  int64 `json:"skip"`
+  Limit int64 `json:"limit"`
+  limit bool
+}
+
+func (l AqlLimit) Generate() string {
+  var li string
+  if !l.limit {
+    skip := strconv.FormatInt(l.Skip,10)
+    limit:= strconv.FormatInt(l.Limit,10)
+    li = `LIMIT `+skip+`,`+limit
+  }else{
+    limit:= strconv.FormatInt(l.Limit,10)
+    li = `LIMIT `+limit
+  }
+
+  return li
+}
+
+// Aql Limit
+// Usage:
+//  Limit(10) 
+//  out: LIMIT 10
+//  Limit(5,15) 
+//  out: LIMIT 5,15
+func (aq *AqlStruct) Limit(s ... int64) *AqlStruct {
+  var l AqlLimit
+  if len(s) > 1 {
+    l.Skip = s[0]
+    l.Limit = s[1]
+  }
+
+  if len(s) == 1 {
+    l.Limit = s[0]
+    l.limit = true
+  }
+
+  if len(s) == 0 {
+    return aq
+  }
+
+  aq.lines = append(aq.lines,l)
+  return aq
+}
+
+// Aql Collect
+// Usage:
+// Collect("first = u.firstName, age = u.age INTO g")
+func (aq *AqlStruct) Collect(sentence string) *AqlStruct{
+  var col AqlCollect
+  if sentence == "" {
+    return aq
+  }
+
+  col.Sentence = sentence
+  aq.lines = append(aq.lines,col)
+  return aq
+}
+
+type AqlCollect struct {
+  Sentence string `json:"collect"`
+}
+
+func (aqc AqlCollect) Generate() string{
+  return "COLLECT "+aqc.Sentence
+}
 
 // Aql functions
 type AqlFunction struct {
