@@ -43,5 +43,5 @@ func TestExample(t *testing.T) {
   //log.Println(aq.For("u","users").For("adm","test").Filter(`{ "key" : "u" , "filters": [{ "name": "price", "op": "gt", "val": 12.12 },{ "name": "age", "op": "eq", "val": 21 }] , "any" : true}`).Return(Obj{ "u" : Atr("u","name") }).Generate())
 
   log.Println("----",Fil("name","eq",213).String(""))
-  log.Println(aq.For("u","users").For("adm","test").Filter(`{ "key" : "u" , "filters": [{ "name": "id", "op": "==", "field": "adm.id" },{ "name": "status", "op": "eq", "val":"A"}], "any" : true }`).Sort("u.name","u.test","ASC","u.age","DESC").Return(Obj{ "u" : Atr("u","name") }).Generate())
+  log.Println(aq.For("u","users").For("adm","test").Remove("u._id","users",nil).Let("test","hola").Filter(`{ "key" : "u" , "filters": [{ "name": "id", "op": "==", "field": "adm.id" },{ "name": "status", "op": "eq", "val":"A"}], "any" : true }`).Sort("u.name","u.test","ASC","u.age","DESC").Limit(2,10).Return(Obj{ "u" : Atr("u","name") }).Generate())
 }
