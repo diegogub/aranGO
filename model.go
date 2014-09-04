@@ -249,15 +249,24 @@ func checkRequired(m interface{}, err Error) {
 				err[fname] = "required"
 			} else {
 				field := reflectValue(m).FieldByName(fname)
+        jname  := Tag(m,fname,"json")
 				// check if it's empty, depending on Kind
 				switch field.Kind() {
 				case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 					if field.Len() == 0 {
-						err[fname] = "required"
+            if jname == "" {
+              err[fname] = "invalid"
+            }else{
+              err[jname] = "invalid"
+            }
 					}
 				case reflect.Interface, reflect.Ptr:
 					if field.IsNil() {
-						err[fname] = "required"
+            if jname == "" {
+              err[fname] = "invalid"
+            }else{
+              err[jname] = "invalid"
+            }
 					}
 				}
 			}
@@ -273,6 +282,8 @@ func checkEnum(m interface{}, err Error) {
 		valid := false
 		for fname, enuml := range enumFields {
 			enumValues := strings.Split(enuml, ",")
+      jname  := Tag(m,fname,"json")
+
 			f := field.FieldByName(fname)
 			valid = false
 			for _, e := range enumValues {
@@ -281,7 +292,11 @@ func checkEnum(m interface{}, err Error) {
 				}
 			}
 			if !valid {
-				err[fname] = "invalid"
+        if jname == "" {
+				  err[fname] = "invalid"
+        }else{
+				  err[jname] = "invalid"
+        }
 			}
 		}
 	}
