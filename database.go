@@ -157,10 +157,7 @@ func (db Database) Col(name string) *Collection {
     }else{
       var col CollectionOptions
       col.Name = name
-      err := db.CreateCollection(&col)
-      if err != nil {
-        panic(err)
-      }
+      db.CreateCollection(&col)
       return db.Col(name)
     }
 	}
