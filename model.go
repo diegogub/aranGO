@@ -4,6 +4,7 @@ import (
 	"reflect"
   "errors"
 	"strings"
+  "time"
 )
 
 type Error map[string]string
@@ -88,6 +89,7 @@ func (c *Context) Save(m Modeler) Error {
 		if len(c.err) > 0 {
 			return c.err
 		}
+    setTimes(m.(interface{}),"save")
 		e := c.db.Col(col).Save(m)
 		if e != nil {
 			// db c.error
@@ -96,7 +98,7 @@ func (c *Context) Save(m Modeler) Error {
 		// check if model has errors
 		docerror, haserror := m.GetError()
 		if haserror {
-			c.err["doc"] = docerror
+			c.err["error"] = docerror
 			return c.err
 		}
 
@@ -368,4 +370,23 @@ func getTags(obj reflect.Type,tags map[string]string,key string){
       }
     }
 	}
+}
+
+func setTimes(obj interface{},action string){
+  timeFields := Tags(obj,"time")
+  if len(timeFields) > 0 {
+    for fname , val := range timeFields {
+      if val == action {
+        f := reflectValue(obj).FieldByName(fname)
+			  switch f.Kind(){
+          case reflect.Int64:
+            t:= time.Now().Unix() * 1000
+            f.Set(reflect.ValueOf(t))
+           default:
+            t := time.Now().UTC()
+            f.Set(reflect.ValueOf(t))
+        }
+      }
+    }
+  }
 }
