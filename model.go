@@ -2,6 +2,7 @@ package aranGO
 
 import (
 	"reflect"
+  "errors"
 	"strings"
 )
 
@@ -13,6 +14,25 @@ func NewError() Error {
   return err
 }
 
+// Context to share state between hook and track transaction state
+type Context struct {
+  keys map[string]interface{}
+  db *Database
+  err Error
+}
+
+func NewContext(db *Database) (*Context,error){
+  if db == nil  {
+    return nil,errors.New("Invalid DB")
+  }
+  var c Context
+  c.db = db
+  c.keys = make(map[string]interface{})
+  c.err = make(map[string]string)
+
+  return &c,nil
+}
+
 type Modeler interface {
 	// Returns current model key
 	GetKey() string
@@ -21,97 +41,130 @@ type Modeler interface {
 	// Error
 	GetError() (string, bool)
 	// hooks
-	PreSave(err Error)
-	PostSave(err Error)
+}
 
-	PreUpdate(err Error)
-	PostUpdate(err Error)
+// hook interfaces
+type PreSaver interface{
+	PreSave(c *Context)
+}
 
-	PreDelete(err Error)
-	PostDelete(err Error)
+type PostSaver interface{
+	PostSave(c *Context)
+}
+
+type PreUpdater interface{
+	PreUpdate(c *Context)
+}
+
+type PostUpdater interface{
+	PostUpdate(c *Context)
+}
+
+type PreDeleter interface{
+	PreDelete(c *Context)
+}
+
+type PostDeleter interface{
+	PostDelete(c *Context)
 }
 
 // Updates or save new Model
-func Save(db *Database, m Modeler) Error {
-	var err Error = make(map[string]string)
+func (c *Context) Save(m Modeler) Error {
 	col := m.GetCollection()
 	key := m.GetKey()
 
 	// basic validation
-	validate(m, db, col, err)
-	if len(err) > 0 {
-		return err
+	validate(m, c.db, col, c.err)
+	if len(c.err) > 0 {
+		return c.err
 	}
 
 	if key == "" {
-		m.PreSave(err)
-		if len(err) > 0 {
-			return err
+
+    if hook, ok := m.(PreSaver); ok{
+		  hook.PreSave(c)
+    }
+
+		if len(c.err) > 0 {
+			return c.err
 		}
-		e := db.Col(col).Save(m)
+		e := c.db.Col(col).Save(m)
 		if e != nil {
-			// db error
-			err["db"] = e.Error()
+			// db c.error
+			c.err["db"] = e.Error()
 		}
 		// check if model has errors
 		docerror, haserror := m.GetError()
 		if haserror {
-			err["doc"] = docerror
-			return err
+			c.err["doc"] = docerror
+			return c.err
 		}
 
-		m.PostSave(err)
+    if hook, ok := m.(PostSaver); ok{
+		  hook.PostSave(c)
+    }
+
 	} else {
-		m.PreUpdate(err)
-		if len(err) > 0 {
-			return err
+
+    if hook, ok := m.(PreUpdater); ok{
+		  hook.PreUpdate(c)
+    }
+
+		if len(c.err) > 0 {
+			return c.err
 		}
 
-		e := db.Col(col).Replace(key, m)
+		e := c.db.Col(col).Replace(key, m)
 		if e != nil {
 			// db error
-			err["db"] = e.Error()
+			c.err["db"] = e.Error()
 		}
 
 		// check if model has errors
 		docerror, haserror := m.GetError()
 		if haserror {
-			err["doc"] = docerror
-			return err
+			c.err["doc"] = docerror
+			return c.err
 		}
-		m.PostUpdate(err)
+
+    if hook, ok := m.(PostUpdater); ok{
+		  hook.PostUpdate(c)
+    }
 	}
 
-	return err
+	return c.err
 }
 
-func Delete(db *Database, m Modeler) Error {
-	var err Error
+func (c *Context) Delete(db *Database, m Modeler) Error {
 	key := m.GetKey()
 	col := m.GetCollection()
 	if key == "" {
 		//
-		err["key"] = "invalid"
-		return err
+		c.err["key"] = "invalid"
+		return c.err
 	}
 	// pre delete hook
-	m.PreDelete(err)
-	if len(err) > 0 {
-		return err
+  if hook, ok := m.(PreDeleter); ok{
+    hook.PreDelete(c)
+  }
+	if len(c.err) > 0 {
+		return c.err
 	}
 	e := db.Col(col).Delete(key)
 	if e != nil {
-		err["db"] = e.Error()
+		c.err["db"] = e.Error()
 	}
 	docerror, haserror := m.GetError()
 	if haserror {
-		err["doc"] = docerror
-		return err
+		c.err["doc"] = docerror
+		return c.err
 	}
 
-	m.PostDelete(err)
+  if hook, ok := m.(PostDeleter); ok{
+    hook.PostDelete(c)
+  }
 
-	return err
+	return c.err
 }
 
 func Unique(m interface{},db *Database,update bool, err Error){
