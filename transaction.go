@@ -8,7 +8,7 @@ import(
 type Transaction struct {
 	Collections map[string][]string `json:"collections"`
 	Action      string              `json:"action"`
-	Result      string              `json:"result,omitempty"`
+	Result      interface{}         `json:"result,omitempty"`
 
 	//Optional
 	Sync      bool                   `json:"waitForSync,omitempty"`

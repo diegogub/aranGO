@@ -1,7 +1,8 @@
 package aranGO
 
 import (
-	"reflect"
+	  "reflect"
+    "encoding/json"
     "errors"
     "strings"
     "time"
@@ -41,7 +42,7 @@ func ObjT(m Modeler)  ObjTran {
     return obt
 }
 
-type Action struct {
+type Relation struct {
     Obj     ObjTran                 `json:"obj"   `
     // Relate to map[edgeCol]obj
     EdgeCol string                  `json:"edgcol"`
@@ -58,7 +59,7 @@ type ObjTran struct {
     Obj        interface{}  `json:"o"`
 }
 
-func (a *Action) Commit() error{
+func (a *Relation) Commit() error{
   col := []string{ a.Obj.Collection }
   if a.EdgeCol != "" {
     col = append(col,a.EdgeCol)
@@ -67,7 +68,7 @@ func (a *Action) Commit() error{
   q := `function(p){
         var db = require('internal').db;
         try{
-          if ( p["act"]["obj"]["o"]["_key"] == "" && db[p["act"]["obj"]["c"]].exists(p["act"]["obj"]["o"]["_key"]) ) {
+          if ( p["act"]["obj"]["o"].hasOwnProperty("_key") && db[p["act"]["obj"]["c"]].exists(p["act"]["obj"]["o"]["_key"]) ) {
             if ( p["act"]["update"] ) {
               p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].replace(p["act"]["obj"]["o"]["_id"],p["act"]["obj"]["o"])
               p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
@@ -88,7 +89,7 @@ func (a *Action) Commit() error{
         mainId = p["act"]["obj"]["o"]["_id"]
 
         for (i= 0 ;i<p["act"]["rel"].length;i++){
-            if ( p["act"]["rel"][i]["o"]["_key"] == "" && db[p["act"]["rel"][i]["o"]["c"]].exists(p["act"]["rel"][i]["o"]["_key"]) ) {
+            if ( p["act"]["rel"][i]["o"].hasOwnProperty("_key") && db[p["act"]["rel"][i]["c"]].exists(p["act"]["rel"][i]["o"]["_key"]) ) {
               if ( p["act"]["update"] ) {
                 p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].replace(p["act"]["rel"][i]["o"]["_id"],p["act"]["rel"][i]["o"])
                 p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
@@ -119,12 +120,14 @@ func (a *Action) Commit() error{
   trx := NewTransaction(q,col,nil)
   trx.Params = map[string]interface{}{ "act" : a }
   err := trx.Execute(a.db)
-
+  // Tedious unmarshaling. I should map, maps => struct
+  b,_ := json.Marshal(trx.Result)
+  json.Unmarshal(b,a)
   return err
 }
 
-func (c *Context) NewAction(main Modeler,label map[string]interface{},edgecol string,dierection string,rel ... Modeler) (*Action,Error){
-    var act Action
+func (c *Context) NewRelation(main Modeler,label map[string]interface{},edgecol string,dierection string,rel ... Modeler) (*Relation,Error){
+    var act Relation
 
 	validate(main, c.db, main.GetCollection(), c.err)
     if len(c.err) > 0 {
