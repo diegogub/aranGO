@@ -15,7 +15,7 @@ type Transaction struct {
 	Lock      int                    `json:"lockTimeout,omitempty"`
 	Replicate bool                   `json:"replicate,omitempty"`
 	Params    map[string]interface{} `json:"params,omitempty"`
-  Time      time.Duration
+  Time      time.Duration          `json:"time,omitempty"`
 
 	//ErrorInfo
 	Error bool `json:"error,omitempty"`

@@ -42,14 +42,15 @@ func ObjT(m Modeler)  ObjTran {
 }
 
 type Action struct {
-    Obj     ObjTran                 `json:"obj"`
+    Obj     ObjTran                 `json:"obj"   `
     // Relate to map[edgeCol]obj
     EdgeCol string                  `json:"edgcol"`
-    Label   map[string]interface{}  `json:"label"`
-    Rel     []ObjTran               `json:"rel"`
+    Label   map[string]interface{}  `json:"label" `
+    Rel     []ObjTran               `json:"rel"   `
+    Error   bool                    `json:"error" `
+    Update  bool                    `json:"update"`
 
     db      *Database
-    update  bool                    `json:"update"`
 }
 
 type ObjTran struct {
@@ -57,11 +58,72 @@ type ObjTran struct {
     Obj        interface{}  `json:"o"`
 }
 
-func (a *Action) Execute() Error{
+func (a *Action) Commit() error{
+  col := []string{ a.Obj.Collection }
+  if a.EdgeCol != "" {
+    col = append(col,a.EdgeCol)
+  }
 
+  q := `function(p){
+        var db = require('internal').db;
+        try{
+          if ( p["act"]["obj"]["o"]["_key"] == "" && db[p["act"]["obj"]["c"]].exists(p["act"]["obj"]["o"]["_key"]) ) {
+            if ( p["act"]["update"] ) {
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].replace(p["act"]["obj"]["o"]["_id"],p["act"]["obj"]["o"])
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
+            }
+          }else{
+            if (p["act"]["obj"]["o"]["_key"] == null || p["act"]["obj"]["o"]["_key"] == ""){
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].save(p["act"]["obj"]["o"])
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
+            }else{
+              throw("invalid main object id")
+            }
+          }
+        }catch(err){
+          p["act"]["error"] = true
+          p["act"]["msg"]   = err
+        }
+
+        mainId = p["act"]["obj"]["o"]["_id"]
+
+        for (i= 0 ;i<p["act"]["rel"].length;i++){
+            if ( p["act"]["rel"][i]["o"]["_key"] == "" && db[p["act"]["rel"][i]["o"]["c"]].exists(p["act"]["rel"][i]["o"]["_key"]) ) {
+              if ( p["act"]["update"] ) {
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].replace(p["act"]["rel"][i]["o"]["_id"],p["act"]["rel"][i]["o"])
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
+              }
+            }else{
+              if (p["act"]["rel"][i]["o"]["_key"] == null || p["act"]["rel"][i]["o"]["_key"] == ""){
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].save(p["act"]["rel"][i]["o"])
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
+              }else{
+                throw("invalid main relect id")
+              }
+            }
+            // relate documents
+            switch (p["act"]["dire"]){
+              case "out":
+                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
+              case "in":
+                db[p["act"]["edgcol"]].save(p["act"]["rel"][i]["o"]["_id"],mainId,p["act"]["label"])
+              default:
+                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
+            }
+        }
+
+        return p["act"]
+    }
+  `
+
+  trx := NewTransaction(q,col,nil)
+  trx.Params = map[string]interface{}{ "act" : a }
+  err := trx.Execute(a.db)
+
+  return err
 }
 
-func (c *Context) NewAction(main Modeler,label map[string]interface{},edgecol string,rel []Modeler) (*Action,Error){
+func (c *Context) NewAction(main Modeler,label map[string]interface{},edgecol string,dierection string,rel ... Modeler) (*Action,Error){
     var act Action
 
 	validate(main, c.db, main.GetCollection(), c.err)
