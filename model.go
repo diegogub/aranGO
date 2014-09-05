@@ -2,9 +2,9 @@ package aranGO
 
 import (
 	"reflect"
-  "errors"
-	"strings"
-  "time"
+    "errors"
+    "strings"
+    "time"
 )
 
 type Error map[string]string
@@ -32,6 +32,58 @@ func NewContext(db *Database) (*Context,error){
   c.err = make(map[string]string)
 
   return &c,nil
+}
+
+func ObjT(m Modeler)  ObjTran {
+    var obt ObjTran
+    obt.Collection = m.GetCollection()
+    obt.Obj = m
+    return obt
+}
+
+type Action struct {
+    Obj     ObjTran                 `json:"obj"`
+    // Relate to map[edgeCol]obj
+    EdgeCol string                  `json:"edgcol"`
+    Label   map[string]interface{}  `json:"label"`
+    Rel     []ObjTran               `json:"rel"`
+
+    db      *Database
+    update  bool                    `json:"update"`
+}
+
+type ObjTran struct {
+    Collection string       `json:"c"`
+    Obj        interface{}  `json:"o"`
+}
+
+func (a *Action) Execute() Error{
+
+}
+
+func (c *Context) NewAction(main Modeler,label map[string]interface{},edgecol string,rel []Modeler) (*Action,Error){
+    var act Action
+
+	validate(main, c.db, main.GetCollection(), c.err)
+    if len(c.err) > 0 {
+        return nil,c.err
+    }
+
+    act.Obj = ObjT(main)
+    act.Rel = make([]ObjTran,0)
+    act.Label = label
+    act.EdgeCol = edgecol
+
+    for _,mod := range rel {
+	    validate(mod, c.db, mod.GetCollection(), c.err)
+        if len(c.err) > 0 {
+            return nil,c.err
+        }
+
+        act.Rel = append(act.Rel,ObjT(mod))
+    }
+    act.db = c.db
+    return &act,nil
 }
 
 type Modeler interface {
@@ -82,14 +134,14 @@ func (c *Context) Save(m Modeler) Error {
 
 	if key == "" {
 
-    if hook, ok := m.(PreSaver); ok{
-		  hook.PreSave(c)
-    }
+        if hook, ok := m.(PreSaver); ok{
+              hook.PreSave(c)
+        }
 
 		if len(c.err) > 0 {
 			return c.err
 		}
-    setTimes(m.(interface{}),"save")
+
 		e := c.db.Col(col).Save(m)
 		if e != nil {
 			// db c.error
@@ -101,16 +153,19 @@ func (c *Context) Save(m Modeler) Error {
 			c.err["error"] = docerror
 			return c.err
 		}
+        setTimes(m.(interface{}),"save")
+        // async update times
+        c.db.Col(col).Save(m)
 
-    if hook, ok := m.(PostSaver); ok{
-		  hook.PostSave(c)
-    }
+        if hook, ok := m.(PostSaver); ok{
+              hook.PostSave(c)
+        }
 
 	} else {
 
-    if hook, ok := m.(PreUpdater); ok{
-		  hook.PreUpdate(c)
-    }
+        if hook, ok := m.(PreUpdater); ok{
+              hook.PreUpdate(c)
+        }
 
 		if len(c.err) > 0 {
 			return c.err
@@ -128,10 +183,13 @@ func (c *Context) Save(m Modeler) Error {
 			c.err["doc"] = docerror
 			return c.err
 		}
+        setTimes(m.(interface{}),"update")
+        c.db.Col(col).Replace(key, m)
+        // async update times
 
-    if hook, ok := m.(PostUpdater); ok{
-		  hook.PostUpdate(c)
-    }
+        if hook, ok := m.(PostUpdater); ok{
+              hook.PostUpdate(c)
+        }
 	}
 
 	return c.err
