@@ -1,7 +1,8 @@
 package aranGO
 
 import (
-	  "reflect"
+	"reflect"
+    "sync"
     "encoding/json"
     "errors"
     "strings"
@@ -33,122 +34,6 @@ func NewContext(db *Database) (*Context,error){
   c.err = make(map[string]string)
 
   return &c,nil
-}
-
-func ObjT(m Modeler)  ObjTran {
-    var obt ObjTran
-    obt.Collection = m.GetCollection()
-    obt.Obj = m
-    return obt
-}
-
-type Relation struct {
-    Obj     ObjTran                 `json:"obj"   `
-    // Relate to map[edgeCol]obj
-    EdgeCol string                  `json:"edgcol"`
-    Label   map[string]interface{}  `json:"label" `
-    Rel     []ObjTran               `json:"rel"   `
-    Error   bool                    `json:"error" `
-    Update  bool                    `json:"update"`
-
-    db      *Database
-}
-
-type ObjTran struct {
-    Collection string       `json:"c"`
-    Obj        interface{}  `json:"o"`
-}
-
-func (a *Relation) Commit() error{
-  col := []string{ a.Obj.Collection }
-  if a.EdgeCol != "" {
-    col = append(col,a.EdgeCol)
-  }
-
-  q := `function(p){
-        var db = require('internal').db;
-        try{
-          if ( p["act"]["obj"]["o"].hasOwnProperty("_key") && db[p["act"]["obj"]["c"]].exists(p["act"]["obj"]["o"]["_key"]) ) {
-            if ( p["act"]["update"] ) {
-              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].replace(p["act"]["obj"]["o"]["_id"],p["act"]["obj"]["o"])
-              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
-            }
-          }else{
-            if (p["act"]["obj"]["o"]["_key"] == null || p["act"]["obj"]["o"]["_key"] == ""){
-              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].save(p["act"]["obj"]["o"])
-              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
-            }else{
-              throw("invalid main object id")
-            }
-          }
-        }catch(err){
-          p["act"]["error"] = true
-          p["act"]["msg"]   = err
-        }
-
-        mainId = p["act"]["obj"]["o"]["_id"]
-
-        for (i= 0 ;i<p["act"]["rel"].length;i++){
-            if ( p["act"]["rel"][i]["o"].hasOwnProperty("_key") && db[p["act"]["rel"][i]["c"]].exists(p["act"]["rel"][i]["o"]["_key"]) ) {
-              if ( p["act"]["update"] ) {
-                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].replace(p["act"]["rel"][i]["o"]["_id"],p["act"]["rel"][i]["o"])
-                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
-              }
-            }else{
-              if (p["act"]["rel"][i]["o"]["_key"] == null || p["act"]["rel"][i]["o"]["_key"] == ""){
-                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].save(p["act"]["rel"][i]["o"])
-                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
-              }else{
-                throw("invalid main relect id")
-              }
-            }
-            // relate documents
-            switch (p["act"]["dire"]){
-              case "out":
-                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
-              case "in":
-                db[p["act"]["edgcol"]].save(p["act"]["rel"][i]["o"]["_id"],mainId,p["act"]["label"])
-              default:
-                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
-            }
-        }
-
-        return p["act"]
-    }
-  `
-
-  trx := NewTransaction(q,col,nil)
-  trx.Params = map[string]interface{}{ "act" : a }
-  err := trx.Execute(a.db)
-  // Tedious unmarshaling. I should map, maps => struct
-  b,_ := json.Marshal(trx.Result)
-  json.Unmarshal(b,a)
-  return err
-}
-
-func (c *Context) NewRelation(main Modeler,label map[string]interface{},edgecol string,dierection string,rel ... Modeler) (*Relation,Error){
-    var act Relation
-
-	validate(main, c.db, main.GetCollection(), c.err)
-    if len(c.err) > 0 {
-        return nil,c.err
-    }
-
-    act.Obj = ObjT(main)
-    act.Rel = make([]ObjTran,0)
-    act.Label = label
-    act.EdgeCol = edgecol
-
-    for _,mod := range rel {
-	    validate(mod, c.db, mod.GetCollection(), c.err)
-        if len(c.err) > 0 {
-            return nil,c.err
-        }
-
-        act.Rel = append(act.Rel,ObjT(mod))
-    }
-    act.db = c.db
-    return &act,nil
 }
 
 type Modeler interface {
@@ -186,18 +71,19 @@ type PostDeleter interface{
 	PostDelete(c *Context)
 }
 
-// Updates or save new Model
+// Updates or save new Model into database
 func (c *Context) Save(m Modeler) Error {
 	col := m.GetCollection()
 	key := m.GetKey()
 
 	// basic validation
-	validate(m, c.db, col, c.err)
-	if len(c.err) > 0 {
-		return c.err
-	}
 
 	if key == "" {
+
+        validate(m, c.db, col, false,c.err)
+        if len(c.err) > 0 {
+            return c.err
+        }
 
         if hook, ok := m.(PreSaver); ok{
               hook.PreSave(c)
@@ -227,6 +113,11 @@ func (c *Context) Save(m Modeler) Error {
         }
 
 	} else {
+
+        validate(m, c.db, col, true,c.err)
+        if len(c.err) > 0 {
+            return c.err
+        }
 
         if hook, ok := m.(PreUpdater); ok{
               hook.PreUpdate(c)
@@ -258,6 +149,47 @@ func (c *Context) Save(m Modeler) Error {
 	}
 
 	return c.err
+}
+
+type auxModelPos struct {
+    pos int
+    err Error
+}
+
+//Saves models into database concurrently
+func (c *Context) BulkSave(models []Modeler) map[int]Error{
+    var wg sync.WaitGroup
+    errorMap := make(map[int]Error)
+    ch := make(chan auxModelPos)
+    ok := make(chan bool)
+
+    wg.Add(len(models))
+    for i,mod := range models{
+        go func(i int,mod Modeler){
+            err := c.Save(mod)
+            if len(err) > 0 {
+                errPos := auxModelPos{ pos : i , err : err }
+                ch <- errPos
+            }else{
+                ok <- true
+            }
+        }(i,mod)
+    }
+
+    go func() {
+        for {
+            select{
+                case p := <-ch:
+                    errorMap[p.pos] = p.err
+                    wg.Done()
+                case <- ok:
+                    wg.Done()
+            }
+        }
+    }()
+
+    wg.Wait()
+    return errorMap
 }
 
 func (c *Context) Delete(db *Database, m Modeler) Error {
@@ -333,31 +265,33 @@ func unique(m reflect.Value,val map[string]string,db *Database,uniq *bool,update
   }
 }
 
-func Validate(m interface{}, db *Database,col string, err Error){
+func Validate(m interface{}, db *Database,col string,update bool ,err Error){
 	checkRequired(m, err)
 	checkEnum(m, err)
+    Unique(m,db,update,err)
 
 	val := Tags(m, "sub")
 	if len(val) > 0 {
 		for fname, _ := range val {
 			field := reflectValue(m).FieldByName(fname)
 			// All sub structures are not Models
-			validate(field.Interface(), db, col, err)
+			validate(field.Interface(), db, col,update, err)
 		}
 	}
 	return
 }
 
-func validate(m interface{}, db *Database, col string, err Error) {
+func validate(m interface{}, db *Database, col string, update bool,err Error) {
 	checkRequired(m, err)
 	checkEnum(m, err)
+    Unique(m,db,update,err)
 
 	val := Tags(m, "sub")
 	if len(val) > 0 {
 		for fname, _ := range val {
 			field := reflectValue(m).FieldByName(fname)
 			// All sub structures are not Models
-			validate(field.Interface(), db, col, err)
+			validate(field.Interface(), db, col,update, err)
 		}
 	}
 	return
@@ -513,3 +447,131 @@ func setTimes(obj interface{},action string){
     }
   }
 }
+
+func ObjT(m Modeler)  ObjTran {
+    var obt ObjTran
+    obt.Collection = m.GetCollection()
+    obt.Obj = m
+    return obt
+}
+
+type Relation struct {
+    Obj     ObjTran                 `json:"obj"   `
+    // Relate to map[edgeCol]obj
+    EdgeCol string                  `json:"edgcol"`
+    Label   map[string]interface{}  `json:"label" `
+    Rel     []ObjTran               `json:"rel"   `
+    Error   bool                    `json:"error" `
+    Update  bool                    `json:"update"`
+
+    db      *Database
+}
+
+type ObjTran struct {
+    Collection string       `json:"c"`
+    Obj        interface{}  `json:"o"`
+}
+
+func (a *Relation) Commit() error{
+  col := []string{ a.Obj.Collection }
+  if a.EdgeCol != "" {
+    col = append(col,a.EdgeCol)
+  }
+
+  q := `function(p){
+        var db = require('internal').db;
+        try{
+          if ( p["act"]["obj"]["o"].hasOwnProperty("_key") && db[p["act"]["obj"]["c"]].exists(p["act"]["obj"]["o"]["_key"]) ) {
+            if ( p["act"]["update"] ) {
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].replace(p["act"]["obj"]["o"]["_id"],p["act"]["obj"]["o"])
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
+            }
+          }else{
+            if (p["act"]["obj"]["o"]["_key"] == null || p["act"]["obj"]["o"]["_key"] == ""){
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].save(p["act"]["obj"]["o"])
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
+            }else{
+              throw("invalid main object id")
+            }
+          }
+        }catch(err){
+          p["act"]["error"] = true
+          p["act"]["msg"]   = err
+        }
+
+        mainId = p["act"]["obj"]["o"]["_id"]
+
+        for (i= 0 ;i<p["act"]["rel"].length;i++){
+            if ( p["act"]["rel"][i]["o"].hasOwnProperty("_key") && db[p["act"]["rel"][i]["c"]].exists(p["act"]["rel"][i]["o"]["_key"]) ) {
+              if ( p["act"]["update"] ) {
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].replace(p["act"]["rel"][i]["o"]["_id"],p["act"]["rel"][i]["o"])
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
+              }
+            }else{
+              if (p["act"]["rel"][i]["o"]["_key"] == null || p["act"]["rel"][i]["o"]["_key"] == ""){
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].save(p["act"]["rel"][i]["o"])
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
+              }else{
+                throw("invalid main relect id")
+              }
+            }
+            // relate documents
+            switch (p["act"]["dire"]){
+              case "out":
+                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
+              case "in":
+                db[p["act"]["edgcol"]].save(p["act"]["rel"][i]["o"]["_id"],mainId,p["act"]["label"])
+              default:
+                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
+            }
+        }
+
+        return p["act"]
+    }
+  `
+
+  trx := NewTransaction(q,col,nil)
+  trx.Params = map[string]interface{}{ "act" : a }
+  err := trx.Execute(a.db)
+  // Tedious unmarshaling. I should map, maps => struct
+  b,_ := json.Marshal(trx.Result)
+  json.Unmarshal(b,a)
+  return err
+}
+
+func (c *Context) NewRelation(main Modeler,label map[string]interface{},edgecol string,dierection string,rel ... Modeler) (*Relation,Error){
+    var act Relation
+    key := main.GetKey()
+    if key == "" {
+	    validate(main, c.db, main.GetCollection(), false,c.err)
+    }else{
+	    validate(main, c.db, main.GetCollection(), true,c.err)
+    }
+
+    if len(c.err) > 0 {
+        return nil,c.err
+    }
+
+    act.Obj = ObjT(main)
+    act.Rel = make([]ObjTran,0)
+    act.Label = label
+    act.EdgeCol = edgecol
+
+    for _,mod := range rel {
+        key := mod.GetKey()
+        if key == "" {
+            validate(mod, c.db, mod.GetCollection(), false,c.err)
+        }else{
+            validate(mod, c.db, mod.GetCollection(), true,c.err)
+        }
+
+        if len(c.err) > 0 {
+            return nil,c.err
+        }
+
+        act.Rel = append(act.Rel,ObjT(mod))
+    }
+    act.db = c.db
+    return &act,nil
+}
+
