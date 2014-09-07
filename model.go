@@ -71,10 +71,26 @@ type PostDeleter interface{
 	PostDelete(c *Context)
 }
 
+//Get model
+func (c *Context) Get(m Modeler) Error {
+	col := m.GetCollection()
+	key := m.GetKey()
+
+    c.db.Col(col).Get(key,m)
+    docerror, haserror := m.GetError()
+    if haserror {
+        c.err["error"] = docerror
+        return c.err
+    }
+
+    return c.err
+}
+
 // Updates or save new Model into database
 func (c *Context) Save(m Modeler) Error {
 	col := m.GetCollection()
 	key := m.GetKey()
+
 
 	// basic validation
 
@@ -192,7 +208,7 @@ func (c *Context) BulkSave(models []Modeler) map[int]Error{
     return errorMap
 }
 
-func (c *Context) Delete(db *Database, m Modeler) Error {
+func (c *Context) Delete(m Modeler) Error {
 	key := m.GetKey()
 	col := m.GetCollection()
 	if key == "" {
@@ -207,7 +223,7 @@ func (c *Context) Delete(db *Database, m Modeler) Error {
 	if len(c.err) > 0 {
 		return c.err
 	}
-	e := db.Col(col).Delete(key)
+	e := c.db.Col(col).Delete(key)
 	if e != nil {
 		c.err["db"] = e.Error()
 	}
