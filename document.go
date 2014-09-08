@@ -6,12 +6,12 @@ import (
 )
 
 type Document struct {
-	Id  string `json:"_id,omitempty"  `
-	Rev string `json:"_rev,omitempty" `
-	Key string `json:"_key,omitempty" `
+	Id  string `json:"_id,omitempty"              `
+	Rev string `json:"_rev,omitempty"             `
+	Key string `json:"_key,omitempty"             `
 
-	Error   bool   `json:"-"`
-	Message string `json:"-"`
+	Error   bool   `json:"error,omitempty"`
+	Message string `json:"errorMessage,omitempty"`
 }
 
 // Creates base document structure
