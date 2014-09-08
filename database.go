@@ -60,6 +60,9 @@ func (d *Database) ExecuteTran(t *Transaction) error {
 	// record execution time
 	t0 := time.Now()
 	resp, err := d.send("transaction", "", "POST", t, t, t)
+  if err != nil{
+    panic(err)
+  }
 	t1 := time.Now()
 	t.Time = t1.Sub(t0)
 
@@ -157,10 +160,7 @@ func (db Database) Col(name string) *Collection {
     }else{
       var col CollectionOptions
       col.Name = name
-      err := db.CreateCollection(&col)
-      if err != nil {
-        panic(err)
-      }
+      db.CreateCollection(&col)
       return db.Col(name)
     }
 	}

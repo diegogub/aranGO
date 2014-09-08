@@ -2,7 +2,11 @@ package aranGO
 
 import (
 	"reflect"
-	"strings"
+    "sync"
+    "encoding/json"
+    "errors"
+    "strings"
+    "time"
 )
 
 type Error map[string]string
@@ -13,6 +17,25 @@ func NewError() Error {
   return err
 }
 
+// Context to share state between hook and track transaction state
+type Context struct {
+  keys map[string]interface{}
+  db *Database
+  err Error
+}
+
+func NewContext(db *Database) (*Context,error){
+  if db == nil  {
+    return nil,errors.New("Invalid DB")
+  }
+  var c Context
+  c.db = db
+  c.keys = make(map[string]interface{})
+  c.err = make(map[string]string)
+
+  return &c,nil
+}
+
 type Modeler interface {
 	// Returns current model key
 	GetKey() string
@@ -21,97 +44,200 @@ type Modeler interface {
 	// Error
 	GetError() (string, bool)
 	// hooks
-	PreSave(err Error)
-	PostSave(err Error)
-
-	PreUpdate(err Error)
-	PostUpdate(err Error)
-
-	PreDelete(err Error)
-	PostDelete(err Error)
 }
 
-// Updates or save new Model
-func Save(db *Database, m Modeler) Error {
-	var err Error = make(map[string]string)
+// hook interfaces
+type PreSaver interface{
+	PreSave(c *Context)
+}
+
+type PostSaver interface{
+	PostSave(c *Context)
+}
+
+type PreUpdater interface{
+	PreUpdate(c *Context)
+}
+
+type PostUpdater interface{
+	PostUpdate(c *Context)
+}
+
+type PreDeleter interface{
+	PreDelete(c *Context)
+}
+
+type PostDeleter interface{
+	PostDelete(c *Context)
+}
+
+//Get model
+func (c *Context) Get(m Modeler) Error {
 	col := m.GetCollection()
 	key := m.GetKey()
 
-	// basic validation
-	validate(m, db, col, err)
-	if len(err) > 0 {
-		return err
-	}
+    c.db.Col(col).Get(key,m)
+    docerror, haserror := m.GetError()
+    if haserror {
+        c.err["error"] = docerror
+        return c.err
+    }
 
-	if key == "" {
-		m.PreSave(err)
-		if len(err) > 0 {
-			return err
-		}
-		e := db.Col(col).Save(m)
-		if e != nil {
-			// db error
-			err["db"] = e.Error()
-		}
-		// check if model has errors
-		docerror, haserror := m.GetError()
-		if haserror {
-			err["doc"] = docerror
-			return err
-		}
-
-		m.PostSave(err)
-	} else {
-		m.PreUpdate(err)
-		if len(err) > 0 {
-			return err
-		}
-
-		e := db.Col(col).Replace(key, m)
-		if e != nil {
-			// db error
-			err["db"] = e.Error()
-		}
-
-		// check if model has errors
-		docerror, haserror := m.GetError()
-		if haserror {
-			err["doc"] = docerror
-			return err
-		}
-		m.PostUpdate(err)
-	}
-
-	return err
+    return c.err
 }
 
-func Delete(db *Database, m Modeler) Error {
-	var err Error
+// Updates or save new Model into database
+func (c *Context) Save(m Modeler) Error {
+	col := m.GetCollection()
+	key := m.GetKey()
+
+
+	// basic validation
+
+	if key == "" {
+
+        validate(m, c.db, col, false,c.err)
+        if len(c.err) > 0 {
+            return c.err
+        }
+
+        if hook, ok := m.(PreSaver); ok{
+              hook.PreSave(c)
+        }
+
+		if len(c.err) > 0 {
+			return c.err
+		}
+
+		e := c.db.Col(col).Save(m)
+		if e != nil {
+			// db c.error
+			c.err["db"] = e.Error()
+		}
+		// check if model has errors
+		docerror, haserror := m.GetError()
+		if haserror {
+			c.err["error"] = docerror
+			return c.err
+		}
+        setTimes(m.(interface{}),"save")
+        // async update times
+        c.db.Col(col).Save(m)
+
+        if hook, ok := m.(PostSaver); ok{
+              hook.PostSave(c)
+        }
+
+	} else {
+
+        validate(m, c.db, col, true,c.err)
+        if len(c.err) > 0 {
+            return c.err
+        }
+
+        if hook, ok := m.(PreUpdater); ok{
+              hook.PreUpdate(c)
+        }
+
+		if len(c.err) > 0 {
+			return c.err
+		}
+
+		e := c.db.Col(col).Replace(key, m)
+		if e != nil {
+			// db error
+			c.err["db"] = e.Error()
+		}
+
+		// check if model has errors
+		docerror, haserror := m.GetError()
+		if haserror {
+			c.err["doc"] = docerror
+			return c.err
+		}
+        setTimes(m.(interface{}),"update")
+        c.db.Col(col).Replace(key, m)
+        // async update times
+
+        if hook, ok := m.(PostUpdater); ok{
+              hook.PostUpdate(c)
+        }
+	}
+
+	return c.err
+}
+
+type auxModelPos struct {
+    pos int
+    err Error
+}
+
+//Saves models into database concurrently
+func (c *Context) BulkSave(models []Modeler) map[int]Error{
+    var wg sync.WaitGroup
+    errorMap := make(map[int]Error)
+    ch := make(chan auxModelPos)
+    ok := make(chan bool)
+
+    wg.Add(len(models))
+    for i,mod := range models{
+        go func(i int,mod Modeler){
+            err := c.Save(mod)
+            if len(err) > 0 {
+                errPos := auxModelPos{ pos : i , err : err }
+                ch <- errPos
+            }else{
+                ok <- true
+            }
+        }(i,mod)
+    }
+
+    go func() {
+        for {
+            select{
+                case p := <-ch:
+                    errorMap[p.pos] = p.err
+                    wg.Done()
+                case <- ok:
+                    wg.Done()
+            }
+        }
+    }()
+
+    wg.Wait()
+    return errorMap
+}
+
+func (c *Context) Delete(m Modeler) Error {
 	key := m.GetKey()
 	col := m.GetCollection()
 	if key == "" {
 		//
-		err["key"] = "invalid"
-		return err
+		c.err["key"] = "invalid"
+		return c.err
 	}
 	// pre delete hook
-	m.PreDelete(err)
-	if len(err) > 0 {
-		return err
+  if hook, ok := m.(PreDeleter); ok{
+    hook.PreDelete(c)
+  }
+	if len(c.err) > 0 {
+		return c.err
 	}
-	e := db.Col(col).Delete(key)
+	e := c.db.Col(col).Delete(key)
 	if e != nil {
-		err["db"] = e.Error()
+		c.err["db"] = e.Error()
 	}
 	docerror, haserror := m.GetError()
 	if haserror {
-		err["doc"] = docerror
-		return err
+		c.err["doc"] = docerror
+		return c.err
 	}
 
-	m.PostDelete(err)
+  if hook, ok := m.(PostDeleter); ok{
+    hook.PostDelete(c)
+  }
 
-	return err
+	return c.err
 }
 
 func Unique(m interface{},db *Database,update bool, err Error){
@@ -155,31 +281,33 @@ func unique(m reflect.Value,val map[string]string,db *Database,uniq *bool,update
   }
 }
 
-func Validate(m interface{}, db *Database,col string, err Error){
+func Validate(m interface{}, db *Database,col string,update bool ,err Error){
 	checkRequired(m, err)
 	checkEnum(m, err)
+    Unique(m,db,update,err)
 
 	val := Tags(m, "sub")
 	if len(val) > 0 {
 		for fname, _ := range val {
 			field := reflectValue(m).FieldByName(fname)
 			// All sub structures are not Models
-			validate(field.Interface(), db, col, err)
+			validate(field.Interface(), db, col,update, err)
 		}
 	}
 	return
 }
 
-func validate(m interface{}, db *Database, col string, err Error) {
+func validate(m interface{}, db *Database, col string, update bool,err Error) {
 	checkRequired(m, err)
 	checkEnum(m, err)
+    Unique(m,db,update,err)
 
 	val := Tags(m, "sub")
 	if len(val) > 0 {
 		for fname, _ := range val {
 			field := reflectValue(m).FieldByName(fname)
 			// All sub structures are not Models
-			validate(field.Interface(), db, col, err)
+			validate(field.Interface(), db, col,update, err)
 		}
 	}
 	return
@@ -196,15 +324,24 @@ func checkRequired(m interface{}, err Error) {
 				err[fname] = "required"
 			} else {
 				field := reflectValue(m).FieldByName(fname)
+        jname  := Tag(m,fname,"json")
 				// check if it's empty, depending on Kind
 				switch field.Kind() {
 				case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 					if field.Len() == 0 {
-						err[fname] = "required"
+            if jname == "" {
+              err[fname] = "invalid"
+            }else{
+              err[jname] = "invalid"
+            }
 					}
 				case reflect.Interface, reflect.Ptr:
 					if field.IsNil() {
-						err[fname] = "required"
+            if jname == "" {
+              err[fname] = "invalid"
+            }else{
+              err[jname] = "invalid"
+            }
 					}
 				}
 			}
@@ -220,6 +357,8 @@ func checkEnum(m interface{}, err Error) {
 		valid := false
 		for fname, enuml := range enumFields {
 			enumValues := strings.Split(enuml, ",")
+      jname  := Tag(m,fname,"json")
+
 			f := field.FieldByName(fname)
 			valid = false
 			for _, e := range enumValues {
@@ -228,7 +367,11 @@ func checkEnum(m interface{}, err Error) {
 				}
 			}
 			if !valid {
-				err[fname] = "invalid"
+        if jname == "" {
+				  err[fname] = "invalid"
+        }else{
+				  err[jname] = "invalid"
+        }
 			}
 		}
 	}
@@ -301,3 +444,150 @@ func getTags(obj reflect.Type,tags map[string]string,key string){
     }
 	}
 }
+
+func setTimes(obj interface{},action string){
+  timeFields := Tags(obj,"time")
+  if len(timeFields) > 0 {
+    for fname , val := range timeFields {
+      if val == action {
+        f := reflectValue(obj).FieldByName(fname)
+			  switch f.Kind(){
+          case reflect.Int64:
+            t:= time.Now().Unix() * 1000
+            f.Set(reflect.ValueOf(t))
+           default:
+            t := time.Now().UTC()
+            f.Set(reflect.ValueOf(t))
+        }
+      }
+    }
+  }
+}
+
+func ObjT(m Modeler)  ObjTran {
+    var obt ObjTran
+    obt.Collection = m.GetCollection()
+    obt.Obj = m
+    return obt
+}
+
+type Relation struct {
+    Obj     ObjTran                 `json:"obj"   `
+    // Relate to map[edgeCol]obj
+    EdgeCol string                  `json:"edgcol"`
+    Label   map[string]interface{}  `json:"label" `
+    Rel     []ObjTran               `json:"rel"   `
+    Error   bool                    `json:"error" `
+    Update  bool                    `json:"update"`
+
+    db      *Database
+}
+
+type ObjTran struct {
+    Collection string       `json:"c"`
+    Obj        interface{}  `json:"o"`
+}
+
+func (a *Relation) Commit() error{
+  col := []string{ a.Obj.Collection }
+  if a.EdgeCol != "" {
+    col = append(col,a.EdgeCol)
+  }
+
+  q := `function(p){
+        var db = require('internal').db;
+        try{
+          if ( p["act"]["obj"]["o"].hasOwnProperty("_key") && db[p["act"]["obj"]["c"]].exists(p["act"]["obj"]["o"]["_key"]) ) {
+            if ( p["act"]["update"] ) {
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].replace(p["act"]["obj"]["o"]["_id"],p["act"]["obj"]["o"])
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
+            }
+          }else{
+            if (p["act"]["obj"]["o"]["_key"] == null || p["act"]["obj"]["o"]["_key"] == ""){
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].save(p["act"]["obj"]["o"])
+              p["act"]["obj"]["o"] = db[p["act"]["obj"]["c"]].document(p["act"]["obj"]["o"]["_id"])
+            }else{
+              throw("invalid main object id")
+            }
+          }
+        }catch(err){
+          p["act"]["error"] = true
+          p["act"]["msg"]   = err
+        }
+
+        mainId = p["act"]["obj"]["o"]["_id"]
+
+        for (i= 0 ;i<p["act"]["rel"].length;i++){
+            if ( p["act"]["rel"][i]["o"].hasOwnProperty("_key") && db[p["act"]["rel"][i]["c"]].exists(p["act"]["rel"][i]["o"]["_key"]) ) {
+              if ( p["act"]["update"] ) {
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].replace(p["act"]["rel"][i]["o"]["_id"],p["act"]["rel"][i]["o"])
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
+              }
+            }else{
+              if (p["act"]["rel"][i]["o"]["_key"] == null || p["act"]["rel"][i]["o"]["_key"] == ""){
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].save(p["act"]["rel"][i]["o"])
+                p["act"]["rel"][i]["o"] = db[p["act"]["rel"][i]["c"]].document(p["act"]["rel"][i]["o"]["_id"])
+              }else{
+                throw("invalid main relect id")
+              }
+            }
+            // relate documents
+            switch (p["act"]["dire"]){
+              case "out":
+                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
+              case "in":
+                db[p["act"]["edgcol"]].save(p["act"]["rel"][i]["o"]["_id"],mainId,p["act"]["label"])
+              default:
+                db[p["act"]["edgcol"]].save(mainId,p["act"]["rel"][i]["o"]["_id"],p["act"]["label"])
+            }
+        }
+
+        return p["act"]
+    }
+  `
+
+  trx := NewTransaction(q,col,nil)
+  trx.Params = map[string]interface{}{ "act" : a }
+  err := trx.Execute(a.db)
+  // Tedious unmarshaling. I should map, maps => struct
+  b,_ := json.Marshal(trx.Result)
+  json.Unmarshal(b,a)
+  return err
+}
+
+func (c *Context) NewRelation(main Modeler,label map[string]interface{},edgecol string,dierection string,rel ... Modeler) (*Relation,Error){
+    var act Relation
+    key := main.GetKey()
+    if key == "" {
+	    validate(main, c.db, main.GetCollection(), false,c.err)
+    }else{
+	    validate(main, c.db, main.GetCollection(), true,c.err)
+    }
+
+    if len(c.err) > 0 {
+        return nil,c.err
+    }
+
+    act.Obj = ObjT(main)
+    act.Rel = make([]ObjTran,0)
+    act.Label = label
+    act.EdgeCol = edgecol
+
+    for _,mod := range rel {
+        key := mod.GetKey()
+        if key == "" {
+            validate(mod, c.db, mod.GetCollection(), false,c.err)
+        }else{
+            validate(mod, c.db, mod.GetCollection(), true,c.err)
+        }
+
+        if len(c.err) > 0 {
+            return nil,c.err
+        }
+
+        act.Rel = append(act.Rel,ObjT(mod))
+    }
+    act.db = c.db
+    return &act,nil
+}
+
