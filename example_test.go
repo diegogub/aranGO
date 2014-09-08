@@ -2,7 +2,6 @@ package aranGO
 
 import "testing"
 import "log"
-import "time"
 
 type Sub struct{
   SubAt  string `unique:"users"`
@@ -10,14 +9,13 @@ type Sub struct{
 
 type DocTest struct {
   Document // arango Document to save id, key, rev
-  Sub
   Name     string  `json:"" unique:"users"`
   Age      int
   Likes    []string
 }
 
 func (d *DocTest) GetCollection() string {
-  return "test"
+  return "apps"
 }
 
 func (d *DocTest) GetKey() string {
@@ -31,18 +29,19 @@ func (d *DocTest) GetError() (string,bool){
 func TestExample(t *testing.T) {
   // connect
   log.Println("start test")
-  s,err := Connect("http://localhost:8530","diego","test",true)
+  s,err := Connect("http://localhost:8529","diego","",false)
   if err != nil{
     panic(err)
   }
-  db := s.DB("_system")
+  db := s.DB("goleat")
+  c ,_:= NewContext(db)
+
+  log.Println(db.Collections)
 
   d1 := DocTest{ Name : "Romina" }
 
-  d2 := DocTest{ Name : "Diego" }
-  d3 := DocTest { Name : "Emiliano" }
-
-  c ,_:= NewContext(db)
+  log.Println(c.Save(&d1))
+  /*
   a ,e := c.NewRelation(&d1,Obj{ "in" : "love"},"relations","out",&d2,&d3)
   a.Update = false
   if len(e) > 0{

@@ -1,7 +1,7 @@
 package aranGO
 
 import (
-	"reflect"
+	  "reflect"
     "sync"
     "encoding/json"
     "errors"
@@ -104,7 +104,6 @@ func (c *Context) Save(m Modeler) Error {
         if hook, ok := m.(PreSaver); ok{
               hook.PreSave(c)
         }
-
 		if len(c.err) > 0 {
 			return c.err
 		}
@@ -122,7 +121,7 @@ func (c *Context) Save(m Modeler) Error {
 		}
         setTimes(m.(interface{}),"save")
         // async update times
-        c.db.Col(col).Save(m)
+        //c.db.Col(col).Save(m)
 
         if hook, ok := m.(PostSaver); ok{
               hook.PostSave(c)
@@ -252,9 +251,19 @@ func Unique(m interface{},db *Database,update bool, err Error){
       if ftype.Anonymous && ftype.Type.Kind() == reflect.Struct {
         unique(field,val,db,&uniq,update,err)
       }else{
-      // search by example
+        // validate collection name!!!!
+        validName := validColName(col)
+        if col == "-" || col == "" || validName != nil{
+          err["colname"] = "Invalid collection name in unique tag"
+          return
+        }
         c := db.Col(col)
-        uniq , _ = c.Unique(fname,field.String(),update,"")
+        jname  := Tag(m,fname,"json")
+        if jname != "" {
+          uniq , _ = c.Unique(fname,jname,update,"")
+        }else{
+          uniq , _ = c.Unique(fname,field.String(),update,"")
+        }
       }
       if !uniq{
         err[fname] = "not unique"
