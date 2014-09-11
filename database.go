@@ -167,19 +167,32 @@ func (db Database) Col(name string) *Collection {
 	return &col
 }
 
-// Create collections
-func (d *Database) CreateCollection(c *CollectionOptions) error {
-
+func validColName(name string) error {
 	reg, err := regexp.Compile(`^[A-z]+[0-9\-_]*`)
 
 	if err != nil {
 		return err
 	}
-	if !reg.MatchString(c.Name) {
+	if !reg.MatchString(name) {
 		return errors.New("Invalid collection name")
 	}
 
+  return nil
+}
+
+
+// Create collections
+func (d *Database) CreateCollection(c *CollectionOptions) error {
+
+  err := validColName(c.Name)
+  if err != nil {
+    return err
+  }
+
 	resp, err := d.send("collection", "", "POST", c, nil, nil)
+  if err != nil {
+    return err
+  }
 
 	switch resp.Status() {
 	case 200:
