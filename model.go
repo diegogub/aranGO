@@ -19,9 +19,9 @@ func NewError() Error {
 
 // Context to share state between hook and track transaction state
 type Context struct {
-  keys map[string]interface{}
-  db *Database
-  err Error
+  Keys map[string]interface{}
+  Db *Database
+  Err Error
 }
 
 func NewContext(db *Database) (*Context,error){
@@ -29,9 +29,9 @@ func NewContext(db *Database) (*Context,error){
     return nil,errors.New("Invalid DB")
   }
   var c Context
-  c.db = db
-  c.keys = make(map[string]interface{})
-  c.err = make(map[string]string)
+  c.Db = db
+  c.Keys = make(map[string]interface{})
+  c.Err = make(map[string]string)
 
   return &c,nil
 }
@@ -76,14 +76,14 @@ func (c *Context) Get(m Modeler) Error {
 	col := m.GetCollection()
 	key := m.GetKey()
 
-    c.db.Col(col).Get(key,m)
+    c.Db.Col(col).Get(key,m)
     docerror, haserror := m.GetError()
     if haserror {
-        c.err["error"] = docerror
-        return c.err
+        c.Err["error"] = docerror
+        return c.Err
     }
 
-    return c.err
+    return c.Err
 }
 
 // Updates or save new Model into database
@@ -96,29 +96,29 @@ func (c *Context) Save(m Modeler) Error {
 
 	if key == "" {
 
-        validate(m, c.db, col, false,c.err)
-        if len(c.err) > 0 {
-            return c.err
+        validate(m, c.Db, col, false,c.Err)
+        if len(c.Err) > 0 {
+            return c.Err
         }
 
         if hook, ok := m.(PreSaver); ok{
               hook.PreSave(c)
         }
-		if len(c.err) > 0 {
-			return c.err
+		if len(c.Err) > 0 {
+			return c.Err
 		}
 
     setTimes(m.(interface{}),"save")
-		e := c.db.Col(col).Save(m)
+		e := c.Db.Col(col).Save(m)
 		if e != nil {
 			// db c.error
-			c.err["db"] = e.Error()
+			c.Err["Db"] = e.Error()
 		}
 		// check if model has errors
 		docerror, haserror := m.GetError()
 		if haserror {
-			c.err["error"] = docerror
-			return c.err
+			c.Err["error"] = docerror
+			return c.Err
 		}
 
         if hook, ok := m.(PostSaver); ok{
@@ -127,31 +127,31 @@ func (c *Context) Save(m Modeler) Error {
 
 	} else {
 
-        validate(m, c.db, col, true,c.err)
-        if len(c.err) > 0 {
-            return c.err
+        validate(m, c.Db, col, true,c.Err)
+        if len(c.Err) > 0 {
+            return c.Err
         }
 
         if hook, ok := m.(PreUpdater); ok{
               hook.PreUpdate(c)
         }
 
-		if len(c.err) > 0 {
-			return c.err
+		if len(c.Err) > 0 {
+			return c.Err
 		}
 
     setTimes(m.(interface{}),"save")
-		e := c.db.Col(col).Replace(key, m)
+		e := c.Db.Col(col).Replace(key, m)
 		if e != nil {
 			// db error
-			c.err["db"] = e.Error()
+			c.Err["db"] = e.Error()
 		}
 
 		// check if model has errors
 		docerror, haserror := m.GetError()
 		if haserror {
-			c.err["doc"] = docerror
-			return c.err
+			c.Err["doc"] = docerror
+			return c.Err
 		}
 
     if hook, ok := m.(PostUpdater); ok{
@@ -159,7 +159,7 @@ func (c *Context) Save(m Modeler) Error {
     }
 	}
 
-	return c.err
+	return c.Err
 }
 
 type auxModelPos struct {
@@ -208,31 +208,31 @@ func (c *Context) Delete(m Modeler) Error {
 	col := m.GetCollection()
 	if key == "" {
 		//
-		c.err["key"] = "invalid"
-		return c.err
+		c.Err["key"] = "invalid"
+		return c.Err
 	}
 	// pre delete hook
   if hook, ok := m.(PreDeleter); ok{
     hook.PreDelete(c)
   }
-	if len(c.err) > 0 {
-		return c.err
+	if len(c.Err) > 0 {
+		return c.Err
 	}
-	e := c.db.Col(col).Delete(key)
+	e := c.Db.Col(col).Delete(key)
 	if e != nil {
-		c.err["db"] = e.Error()
+		c.Err["db"] = e.Error()
 	}
 	docerror, haserror := m.GetError()
 	if haserror {
-		c.err["doc"] = docerror
-		return c.err
+		c.Err["doc"] = docerror
+		return c.Err
 	}
 
   if hook, ok := m.(PostDeleter); ok{
     hook.PostDelete(c)
   }
 
-	return c.err
+	return c.Err
 }
 
 func Unique(m interface{},db *Database,update bool, err Error){
@@ -490,7 +490,7 @@ type Relation struct {
     Error   bool                    `json:"error" `
     Update  bool                    `json:"update"`
 
-    db      *Database
+    Db      *Database
 }
 
 type ObjTran struct {
@@ -558,7 +558,7 @@ func (a *Relation) Commit() error{
 
   trx := NewTransaction(q,col,nil)
   trx.Params = map[string]interface{}{ "act" : a }
-  err := trx.Execute(a.db)
+  err := trx.Execute(a.Db)
   // Tedious unmarshaling. I should map, maps => struct
   b,_ := json.Marshal(trx.Result)
   json.Unmarshal(b,a)
@@ -569,13 +569,13 @@ func (c *Context) NewRelation(main Modeler,label map[string]interface{},edgecol 
     var act Relation
     key := main.GetKey()
     if key == "" {
-	    validate(main, c.db, main.GetCollection(), false,c.err)
+	    validate(main, c.Db, main.GetCollection(), false,c.Err)
     }else{
-	    validate(main, c.db, main.GetCollection(), true,c.err)
+	    validate(main, c.Db, main.GetCollection(), true,c.Err)
     }
 
-    if len(c.err) > 0 {
-        return nil,c.err
+    if len(c.Err) > 0 {
+        return nil,c.Err
     }
 
     act.Obj = ObjT(main)
@@ -586,18 +586,18 @@ func (c *Context) NewRelation(main Modeler,label map[string]interface{},edgecol 
     for _,mod := range rel {
         key := mod.GetKey()
         if key == "" {
-            validate(mod, c.db, mod.GetCollection(), false,c.err)
+            validate(mod, c.Db, mod.GetCollection(), false,c.Err)
         }else{
-            validate(mod, c.db, mod.GetCollection(), true,c.err)
+            validate(mod, c.Db, mod.GetCollection(), true,c.Err)
         }
 
-        if len(c.err) > 0 {
-            return nil,c.err
+        if len(c.Err) > 0 {
+            return nil,c.Err
         }
 
         act.Rel = append(act.Rel,ObjT(mod))
     }
-    act.db = c.db
+    act.Db = c.Db
     return &act,nil
 }
 
