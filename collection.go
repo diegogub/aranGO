@@ -466,7 +466,8 @@ func (c *Collection) ConditionBitArray(condition string,skip int,limit int,index
 
 //Return random number
 func (c *Collection) Any(doc interface{}) (error){
-	res, err := c.db.send("simple", "any", "PUT", nil, &doc, &doc)
+  query := map[string]interface{}{"collection": c.Name }
+	res, err := c.db.send("simple", "any", "PUT", query, &doc, &doc)
 
 	if err != nil {
 		return err
