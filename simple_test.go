@@ -1,48 +1,65 @@
 package aranGO
 
 import (
-  "testing"
-  "github.com/stretchr/testify/assert"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Configure to start testing
-var(
-  TestCollection = "apps"
-  TestDoc        DocTest
-  TestDbName     = "goleat"
-  TestUsername       = ""
-  TestPassword   = ""
-  verbose    = false
-  TestServer     = "http://localhost:8529"
-  s *Session
+var (
+	TestCollection = "apps"
+	TestDoc        DocTest
+	TestDbName     = "goleat"
+	TestUsername   = ""
+	TestPassword   = ""
+	verbose        = false
+	TestServer     = "http://localhost:8529"
+	s              *Session
 )
 
 // document to test
 type DocTest struct {
-  Document // arango Document to save id, key, rev
+	Document // arango Document to save id, key, rev
+	Text     string
 }
 
-func TestSimple(t *testing.T){
-  // connect
-  s ,err := Connect(TestServer, TestUsername, TestPassword, verbose)
-  assert.Nil(t,err)
+func TestSimple(t *testing.T) {
+	// connect
+	s, err := Connect(TestServer, TestUsername, TestPassword, verbose)
+	assert.Nil(t, err)
 
-  db := s.DB(TestDbName)
-  assert.NotNil(t,db)
+	// Create the db
+	s.CreateDB(TestDbName, nil)
 
-  c  := db.Col(TestCollection)
-  assert.NotNil(t,c)
+	db := s.DB(TestDbName)
+	assert.NotNil(t, db)
 
-  // Any
-  err = c.Any(&TestDoc)
-  assert.Equal(t,TestDoc.Error,false)
-  assert.Nil(t,err)
+	c := db.Col(TestCollection)
+	assert.NotNil(t, c)
 
-  // Example
-  cur, err := c.Example(map[string]interface{}{},0,10)
-  assert.Equal(t,TestDoc.Error,false)
-  assert.Nil(t,err)
-  assert.NotNil(t,cur)
+	// Any
+	err = c.Any(&TestDoc)
+	assert.Equal(t, TestDoc.Error, false)
+	assert.Nil(t, err)
 
-  // need to add new functions!
+	// Save
+	var saveTestDoc DocTest
+	saveTestDoc.Text = "Stringy string"
+	err = c.Save(saveTestDoc)
+	assert.Nil(t, err)
+
+	// Example
+	cur, err := c.Example(map[string]interface{}{}, 0, 10)
+	assert.Equal(t, TestDoc.Error, false)
+	assert.Nil(t, err)
+	assert.NotNil(t, cur)
+
+	var newTestDoc DocTest
+	moreFiles := cur.FetchOne(newTestDoc)
+	assert.Equal(t, moreFiles, false)
+	assert.Equal(t, saveTestDoc, newTestDoc)
+
+	// need to add new functions!
+
 }
