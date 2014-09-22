@@ -7,35 +7,40 @@ import (
 
 // Configure to start testing
 var(
-  collection = "apps"
-  doc        DocTest
-  dbname     = "goleat"
-  username       = ""
-  password   = ""
+  TestCollection = "apps"
+  TestDoc        DocTest
+  TestDbName     = "goleat"
+  TestUsername       = ""
+  TestPassword   = ""
   verbose    = false
-  server     = "http://localhost:8529"
+  TestServer     = "http://localhost:8529"
   s *Session
 )
 
+// document to test
+type DocTest struct {
+  Document // arango Document to save id, key, rev
+}
+
 func TestSimple(t *testing.T){
   // connect
-  s ,err := Connect(server, username, password, verbose)
+  s ,err := Connect(TestServer, TestUsername, TestPassword, verbose)
   assert.Nil(t,err)
 
-  db := s.DB(dbname)
+  db := s.DB(TestDbName)
   assert.NotNil(t,db)
 
-  c  := db.Col(collection)
+  c  := db.Col(TestCollection)
   assert.NotNil(t,c)
 
   // Any
-  err = c.Any(&doc)
-  assert.Equal(t,doc.Error,false)
+  err = c.Any(&TestDoc)
+  assert.Equal(t,TestDoc.Error,false)
   assert.Nil(t,err)
 
   // Example
   cur, err := c.Example(map[string]interface{}{},0,10)
-  assert.Equal(t,doc.Error,false)
+  assert.Equal(t,TestDoc.Error,false)
   assert.Nil(t,err)
   assert.NotNil(t,cur)
 
