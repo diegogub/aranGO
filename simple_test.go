@@ -31,6 +31,7 @@ func TestSimple(t *testing.T) {
 
 	// Create the db
 	s.CreateDB(TestDbName, nil)
+	defer s.DropDB(TestDbName)
 
 	db := s.DB(TestDbName)
 	assert.NotNil(t, db)
@@ -58,7 +59,7 @@ func TestSimple(t *testing.T) {
 	var newTestDoc DocTest
 	moreFiles := cur.FetchOne(newTestDoc)
 	assert.Equal(t, moreFiles, false)
-	assert.Equal(t, saveTestDoc, newTestDoc)
+	assert.Equal(t, saveTestDoc.Text, newTestDoc.Text)
 
 	// need to add new functions!
 
