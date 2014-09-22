@@ -1,10 +1,9 @@
 package aranGO
 
-import(
-  "reflect"
-  "encoding/json"
+import (
+	"encoding/json"
+	"reflect"
 )
-
 
 func reflectValue(obj interface{}) reflect.Value {
 	var val reflect.Value
@@ -17,17 +16,17 @@ func reflectValue(obj interface{}) reflect.Value {
 	return val
 }
 
-func subParse(i map[string]interface{},doc interface{}) error{
-  b,err := json.Marshal(i)
-  if err != nil {
-    return err
-  }
-  err = json.Unmarshal(b,doc)
-  return err
+func subParse(i map[string]interface{}, doc interface{}) error {
+	b, err := json.Marshal(i)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(b, doc)
+	return err
 }
 
 func isJSON(s string) bool {
-    var js map[string]interface{}
-    return json.Unmarshal([]byte(s), &js) == nil
+	var js map[string]interface{}
+	return json.Unmarshal([]byte(s), &js) == nil
 
 }

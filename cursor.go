@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
-  "time"
+	"time"
 )
 
 type Cursor struct {
-	db *Database         `json:"-"`
-	Id string            `json:"Id"`
+	db *Database `json:"-"`
+	Id string    `json:"Id"`
 
 	Index  int           `json:"-"`
 	Result []interface{} `json:"result"`
@@ -17,11 +17,11 @@ type Cursor struct {
 	Amount int           `json:"count"`
 	Data   Extra         `json:"extra"`
 
-	Err    bool          `json:"error"`
-	ErrMsg string        `json:"errorMessage"`
-	Code   int           `json:"code"`
-  max    int
-  Time   time.Duration `json:"time"`
+	Err    bool   `json:"error"`
+	ErrMsg string `json:"errorMessage"`
+	Code   int    `json:"code"`
+	max    int
+	Time   time.Duration `json:"time"`
 }
 
 func NewCursor(db *Database) *Cursor {
@@ -34,23 +34,23 @@ func NewCursor(db *Database) *Cursor {
 }
 
 // Delete cursor in server and free RAM
-func (c *Cursor) Delete()error {
-  if c.Id == "" {
-    return errors.New("Invalid cursor to delete")
-  }
-  res, err := c.db.send("cursor", c.Id, "DELETE", nil, c, c)
-  if err != nil {
-    return nil
-  }
+func (c *Cursor) Delete() error {
+	if c.Id == "" {
+		return errors.New("Invalid cursor to delete")
+	}
+	res, err := c.db.send("cursor", c.Id, "DELETE", nil, c, c)
+	if err != nil {
+		return nil
+	}
 
-  switch res.Status(){
-    case 202:
-      return nil
-    case 404:
-      return errors.New("Cursor does not exist")
-    default:
-      return nil
-  }
+	switch res.Status() {
+	case 202:
+		return nil
+	case 404:
+		return errors.New("Cursor does not exist")
+	default:
+		return nil
+	}
 
 }
 
@@ -73,15 +73,15 @@ func (c *Cursor) FetchBatch(r interface{}) error {
 		res, err := c.db.send("cursor", c.Id, "PUT", nil, c, c)
 
 		if res.Status() == 200 {
-      return nil
-    }
+			return nil
+		}
 
 		if err != nil {
 			return err
 		}
-  }
+	}
 
-  return nil
+	return nil
 }
 
 // Iterates over cursor, returns false when no more values into batch, fetch next batch if necesary.
@@ -107,7 +107,7 @@ func (c *Cursor) FetchOne(r interface{}) bool {
 		} else {
 			if c.More {
 				//fetch rest from server
-				res, _:= c.db.send("cursor", c.Id, "PUT", nil, c, c)
+				res, _ := c.db.send("cursor", c.Id, "PUT", nil, c, c)
 
 				if err != nil {
 					return false
@@ -131,17 +131,17 @@ func (c *Cursor) FetchOne(r interface{}) bool {
 }
 
 // move cursor index by 1
-func (c *Cursor) Next(r interface{}) bool{
-  if c.Index == c.max {
-    return false
-  }else{
-    c.Index ++
-    if c.Index == c.max {
-      return true
-    }else{
-      return false
-    }
-  }
+func (c *Cursor) Next(r interface{}) bool {
+	if c.Index == c.max {
+		return false
+	} else {
+		c.Index++
+		if c.Index == c.max {
+			return true
+		} else {
+			return false
+		}
+	}
 }
 
 type Extra struct {
