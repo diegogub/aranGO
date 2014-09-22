@@ -57,7 +57,7 @@ func TestSimple(t *testing.T) {
 	assert.NotNil(t, cur)
 
 	var newTestDoc DocTest
-	moreFiles := cur.FetchOne(newTestDoc)
+	moreFiles := cur.FetchOne(&newTestDoc)
 	assert.Equal(t, moreFiles, false)
 	assert.Equal(t, saveTestDoc.Text, newTestDoc.Text)
 
