@@ -6,24 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Configure to start testing
-var (
-	TestCollection = "apps"
-	TestDoc        DocTest
-	TestDbName     = "goleat"
-	TestUsername   = ""
-	TestPassword   = ""
-	verbose        = false
-	TestServer     = "http://localhost:8529"
-	s              *Session
-)
-
-// document to test
-type DocTest struct {
-	Document // arango Document to save id, key, rev
-	Text     string
-}
-
 func TestSimple(t *testing.T) {
 	// connect
 	s, err := Connect(TestServer, TestUsername, TestPassword, verbose)
