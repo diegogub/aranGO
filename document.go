@@ -31,15 +31,15 @@ func NewDocument(id string) (*Document, error) {
 }
 
 // Return map[string]string of document instead of struct
-func (d *Document) Map(db *Database) (map[string]string,error) {
-    var m map[string]string
+func (d *Document) Map(db *Database) (map[string]string, error) {
+	var m map[string]string
 	sid := strings.Split(d.Id, "/")
-    m = make(map[string]string)
-    err := db.Col(sid[0]).Get(sid[1],&m)
-    if err != nil {
-        return m,err
-    }
-    return m,nil
+	m = make(map[string]string)
+	err := db.Col(sid[0]).Get(sid[1], &m)
+	if err != nil {
+		return m, err
+	}
+	return m, nil
 }
 
 func (d *Document) SetKey(key string) error {
@@ -54,29 +54,29 @@ func (d *Document) SetRev(rev string) error {
 }
 
 // Check if a document was updated
-func (d *Document) Updated(db *Database) (bool,error){
+func (d *Document) Updated(db *Database) (bool, error) {
 	if db == nil {
 		return false, errors.New("Invalid db")
 	}
-  // check document id and rev
-  if d.Id == "" || d.Rev == "" {
-    return false, errors.New("Document must exist or have valid _rev and _id")
-  }
-  // add revision id
-  res, err := db.get("document",d.Id + "?rev="+d.Rev,"GET",nil,nil,nil)
+	// check document id and rev
+	if d.Id == "" || d.Rev == "" {
+		return false, errors.New("Document must exist or have valid _rev and _id")
+	}
+	// add revision id
+	res, err := db.get("document", d.Id+"?rev="+d.Rev, "GET", nil, nil, nil)
 
-  if err != nil{
-    return false,err
-  }
+	if err != nil {
+		return false, err
+	}
 
-  switch res.Status(){
-    case 404:
-       return true,nil
-    case 412:
-       return true,nil
-    default:
-       return false,nil
-  }
+	switch res.Status() {
+	case 404:
+		return true, nil
+	case 412:
+		return true, nil
+	default:
+		return false, nil
+	}
 }
 
 // Check if document exist
@@ -85,22 +85,21 @@ func (d *Document) Exist(db *Database) (bool, error) {
 	if db == nil {
 		return false, errors.New("Invalid db")
 	}
-  // check document id and rev
-  if d.Id == "" {
-    return false, errors.New("Document must exist or have valid _rev and _id")
-  }
-  // add revision id
-  res, err := db.get("document",d.Id,"GET",nil,nil,nil)
+	// check document id and rev
+	if d.Id == "" {
+		return false, errors.New("Document must exist or have valid _rev and _id")
+	}
+	// add revision id
+	res, err := db.get("document", d.Id, "GET", nil, nil, nil)
 
-  if err != nil{
-    return false,err
-  }
+	if err != nil {
+		return false, err
+	}
 
-  switch res.Status(){
-    case 404:
-       return false,nil
-    default:
-       return true,nil
-  }
+	switch res.Status() {
+	case 404:
+		return false, nil
+	default:
+		return true, nil
+	}
 }
-

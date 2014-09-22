@@ -1,8 +1,8 @@
 package aranGO
 
-import(
-  "errors"
-  "time"
+import (
+	"errors"
+	"time"
 )
 
 type Transaction struct {
@@ -15,7 +15,7 @@ type Transaction struct {
 	Lock      int                    `json:"lockTimeout,omitempty"`
 	Replicate bool                   `json:"replicate,omitempty"`
 	Params    map[string]interface{} `json:"params,omitempty"`
-  Time      time.Duration          `json:"time,omitempty"`
+	Time      time.Duration          `json:"time,omitempty"`
 
 	//ErrorInfo
 	Error bool `json:"error,omitempty"`
@@ -23,23 +23,23 @@ type Transaction struct {
 	Num   int  `json:"errorNum,omitempty"`
 }
 
-func NewTransaction(q string,write []string,read []string) *Transaction{
-  var t Transaction
-  t.Collections = make(map[string][]string)
-  t.Action = q
-  if write != nil {
-    t.Collections["write"] = write
-  }
-  if read != nil {
-    t.Collections["read"] = read
-  }
-  return &t
+func NewTransaction(q string, write []string, read []string) *Transaction {
+	var t Transaction
+	t.Collections = make(map[string][]string)
+	t.Action = q
+	if write != nil {
+		t.Collections["write"] = write
+	}
+	if read != nil {
+		t.Collections["read"] = read
+	}
+	return &t
 }
 
-func (t *Transaction) Execute(db *Database) error{
-  if db == nil {
-    return errors.New("Nil database")
-  }
-  err := db.ExecuteTran(t)
-  return err
+func (t *Transaction) Execute(db *Database) error {
+	if db == nil {
+		return errors.New("Nil database")
+	}
+	err := db.ExecuteTran(t)
+	return err
 }

@@ -39,14 +39,14 @@ func (d *Database) Execute(q *Query) (*Cursor, error) {
 		}
 		// create cursor
 		c := NewCursor(d)
-	  t0 := time.Now()
+		t0 := time.Now()
 		_, err := d.send("cursor", "", "POST", q, c, c)
-	  t1 := time.Now()
+		t1 := time.Now()
 		if err != nil {
 			return nil, err
 		}
 		c.max = len(c.Result) - 1
-    c.Time = t1.Sub(t0)
+		c.Time = t1.Sub(t0)
 		return c, nil
 	}
 }
@@ -60,9 +60,9 @@ func (d *Database) ExecuteTran(t *Transaction) error {
 	// record execution time
 	t0 := time.Now()
 	resp, err := d.send("transaction", "", "POST", t, t, t)
-  if err != nil{
-    panic(err)
-  }
+	if err != nil {
+		panic(err)
+	}
 	t1 := time.Now()
 	t.Time = t1.Sub(t0)
 
@@ -155,14 +155,14 @@ func (db Database) Col(name string) *Collection {
 	}
 
 	if !found {
-    if db.sess.safe {
-      panic("Collection "+name+" not found")
-    }else{
-      var col CollectionOptions
-      col.Name = name
-      db.CreateCollection(&col)
-      return db.Col(name)
-    }
+		if db.sess.safe {
+			panic("Collection " + name + " not found")
+		} else {
+			var col CollectionOptions
+			col.Name = name
+			db.CreateCollection(&col)
+			return db.Col(name)
+		}
 	}
 	return &col
 }
@@ -177,26 +177,25 @@ func validColName(name string) error {
 		return errors.New("Invalid collection name")
 	}
 
-  return nil
+	return nil
 }
-
 
 // Create collections
 func (d *Database) CreateCollection(c *CollectionOptions) error {
 
-  err := validColName(c.Name)
-  if err != nil {
-    return err
-  }
+	err := validColName(c.Name)
+	if err != nil {
+		return err
+	}
 
 	resp, err := d.send("collection", "", "POST", c, nil, nil)
-  if err != nil {
-    return err
-  }
+	if err != nil {
+		return err
+	}
 
 	switch resp.Status() {
 	case 200:
-    //push name into list
+		//push name into list
 		Collections(d)
 		return nil
 	default:
@@ -240,23 +239,22 @@ func (d *Database) TruncateCollection(name string) error {
 	}
 }
 
-
 // ColExist checks if collection exist
 func (db *Database) ColExist(name string) bool {
-  if name == "" {
-    return false
-  }
-  res, err := db.get("collection",name, "GET", nil, nil, nil)
-  if err != nil {
-    panic(err)
-  }
+	if name == "" {
+		return false
+	}
+	res, err := db.get("collection", name, "GET", nil, nil, nil)
+	if err != nil {
+		panic(err)
+	}
 
-  switch res.Status(){
-    case 404:
-      return false
-    default:
-      return true
-  }
+	switch res.Status() {
+	case 404:
+		return false
+	default:
+		return true
+	}
 }
 
 // CheckCollection returns collection option based on name, nil otherwise

@@ -13,42 +13,42 @@ type CollectionOptions struct {
 	Sync    bool   `json:"waitForSync,omitempty"`
 	Compact bool   `json:"doCompact,omitempty"`
 	//Cannot create with custom journal? TODO
-	JournalSize int                 `json:"journalSize,omitempty"`
-	System   bool                   `json:"isSystem,omitempty"`
-	Volatile bool                   `json:"isVolatile,omitempty"`
-	Keys     map[string]interface{} `json:"keyOptions,omitempty"`
-    // Count
-    Count    int64     `json:"count"`
+	JournalSize int                    `json:"journalSize,omitempty"`
+	System      bool                   `json:"isSystem,omitempty"`
+	Volatile    bool                   `json:"isVolatile,omitempty"`
+	Keys        map[string]interface{} `json:"keyOptions,omitempty"`
+	// Count
+	Count int64 `json:"count"`
 	// Cluster
 	Shards    int      `json:"numberOfShards,omitempty"`
 	ShardKeys []string `json:"shardKeys,omitempty"`
 }
 
-func NewCollectionOptions(name string,sync bool) *CollectionOptions{
-  var copt CollectionOptions
-  copt.Name = name
-  copt.Sync = sync
-  return &copt
+func NewCollectionOptions(name string, sync bool) *CollectionOptions {
+	var copt CollectionOptions
+	copt.Name = name
+	copt.Sync = sync
+	return &copt
 }
 
 func (opt *CollectionOptions) IsEdge() {
-  opt.Type = 3
-  return
+	opt.Type = 3
+	return
 }
 
 func (opt *CollectionOptions) IsDocument() {
-  opt.Type = 2
-  return
+	opt.Type = 2
+	return
 }
 
 func (opt *CollectionOptions) MustSync() {
-  opt.Sync = true
-  return
+	opt.Sync = true
+	return
 }
 
 func (opt *CollectionOptions) IsVolatile() {
-  opt.Volatile = true
-  return
+	opt.Volatile = true
+	return
 }
 
 // Basic Collection struct
@@ -65,36 +65,37 @@ type Collection struct {
 
 // Load collection
 func (col *Collection) Load() error {
-  // set count to false to speed up loading
-  payload := map[string]bool { "count" : false }
-  res, err := col.db.send("collection",col.Name+"/load","PUT",payload,nil,nil)
-  if err != nil {
-    return err
-  }
+	// set count to false to speed up loading
+	payload := map[string]bool{"count": false}
+	res, err := col.db.send("collection", col.Name+"/load", "PUT", payload, nil, nil)
+	if err != nil {
+		return err
+	}
 
-  switch res.Status(){
-    case 400,404:
-      return errors.New("Invalid collection to load")
-    default:
-      return nil
-  }
+	switch res.Status() {
+	case 400, 404:
+		return errors.New("Invalid collection to load")
+	default:
+		return nil
+	}
 }
 
 //Count all documents in collection
-func (col *Collection) Count() int64{
-  var cop CollectionOptions
-  res,err := col.db.get("collection",col.Name+"/count","GET",nil,&cop,&cop)
-  if err != nil {
-    return 0
-  }
+func (col *Collection) Count() int64 {
+	var cop CollectionOptions
+	res, err := col.db.get("collection", col.Name+"/count", "GET", nil, &cop, &cop)
+	if err != nil {
+		return 0
+	}
 
-  switch res.Status() {
-    case 400,404:
-      return 0
-    default:
-      return cop.Count
-  }
+	switch res.Status() {
+	case 400, 404:
+		return 0
+	default:
+		return cop.Count
+	}
 }
+
 // Save saves doc into collection, doc should have Document Embedded to retrieve error and Key later.
 func (col *Collection) Save(doc interface{}) error {
 	var err error
@@ -110,18 +111,18 @@ func (col *Collection) Save(doc interface{}) error {
 		return err
 	}
 
-  switch res.Status() {
-    case 201:
-      return nil
-    case 202:
-      return nil
-    case 400:
-      return errors.New("Invalid document json")
-    case 404:
-      return errors.New("Collection does not exist")
-    default:
-      return nil
-  }
+	switch res.Status() {
+	case 201:
+		return nil
+	case 202:
+		return nil
+	case 400:
+		return errors.New("Invalid document json")
+	case 404:
+		return errors.New("Collection does not exist")
+	default:
+		return nil
+	}
 }
 
 // Save Edge into Edges collection
@@ -148,29 +149,29 @@ func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 }
 
 //Get vertex relations
-func (col *Collection) Edges(start string,direction string,result interface{}) error{
-  if start == "" {
-    return errors.New("Invalid start vertex")
-  }
-  if direction != "in" && direction != "out" {
-    direction = "any"
-  }
+func (col *Collection) Edges(start string, direction string, result interface{}) error {
+	if start == "" {
+		return errors.New("Invalid start vertex")
+	}
+	if direction != "in" && direction != "out" {
+		direction = "any"
+	}
 
-  if col.Type == 2 {
+	if col.Type == 2 {
 		return errors.New("Invalid edge collection: " + col.Name)
-  }
+	}
 
-  res ,err := col.db.get("edges",col.Name+"?vertex="+start+"&direction="+direction,"GET",nil,&result,&result)
-  if err != nil {
-    return err
-  }
+	res, err := col.db.get("edges", col.Name+"?vertex="+start+"&direction="+direction, "GET", nil, &result, &result)
+	if err != nil {
+		return err
+	}
 
-  switch res.Status() {
-    case 200 :
-      return nil
-    default:
-      return errors.New("failed to get edges")
-  }
+	switch res.Status() {
+	case 200:
+		return nil
+	default:
+		return errors.New("failed to get edges")
+	}
 }
 
 // Relate documents in edge collection
@@ -225,18 +226,18 @@ func (col *Collection) Replace(key string, doc interface{}) error {
 		return err
 	}
 
-  switch res.Status(){
-    case 201:
-       return nil
-    case 202:
-       return nil
-    case 400:
-      return errors.New("Invalid json")
-    case 404:
-      return errors.New("Collection or document was not found")
-    default:
-      return nil
-  }
+	switch res.Status() {
+	case 201:
+		return nil
+	case 202:
+		return nil
+	case 400:
+		return errors.New("Invalid json")
+	case 404:
+		return errors.New("Collection or document was not found")
+	default:
+		return nil
+	}
 }
 
 func (col *Collection) Patch(key string, doc interface{}) error {
@@ -247,28 +248,28 @@ func (col *Collection) Patch(key string, doc interface{}) error {
 		return errors.New("Key must not be empty")
 	}
 
-  if col.Type == 2 {
-    res, err = col.db.send("document", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
-  } else {
-    res, err = col.db.send("edge", col.Name+"/"+key+"?rev=", "PATCH", doc, &doc, &doc)
-  }
+	if col.Type == 2 {
+		res, err = col.db.send("document", col.Name+"/"+key, "PATCH", doc, &doc, &doc)
+	} else {
+		res, err = col.db.send("edge", col.Name+"/"+key+"?rev=", "PATCH", doc, &doc, &doc)
+	}
 
 	if err != nil {
 		return err
 	}
 
-  switch res.Status(){
-    case 201:
-      return nil
-    case 202:
-      return nil
-    case 400:
-      return errors.New("Body does not contain a valid JSON representation of a document.")
-    case 404:
-      return errors.New("Collection or document was not found")
-    default:
-      return nil
-  }
+	switch res.Status() {
+	case 201:
+		return nil
+	case 202:
+		return nil
+	case 400:
+		return errors.New("Body does not contain a valid JSON representation of a document.")
+	case 404:
+		return errors.New("Collection or document was not found")
+	default:
+		return nil
+	}
 }
 
 func (col *Collection) Delete(key string) error {
@@ -289,14 +290,13 @@ func (col *Collection) Delete(key string) error {
 	}
 
 	switch res.Status() {
-    case 202, 200:
-      return nil
-    default:
-      return errors.New("Document don't exist or revision error")
+	case 202, 200:
+		return nil
+	default:
+		return errors.New("Document don't exist or revision error")
 
 	}
 }
-
 
 // Get list of collections from any database
 func Collections(db *Database) error {
@@ -316,9 +316,8 @@ func Collections(db *Database) error {
 	}
 }
 
-
 // check if a key is unique
-func (c *Collection) Unique(key string, value interface{}, update bool,index string) (bool, error) {
+func (c *Collection) Unique(key string, value interface{}, update bool, index string) (bool, error) {
 	var cur *Cursor
 	var err error
 	switch index {
@@ -333,40 +332,40 @@ func (c *Collection) Unique(key string, value interface{}, update bool,index str
 		return false, err
 	}
 
-  var result map[string]interface{}
-  result = make(map[string]interface{})
+	var result map[string]interface{}
+	result = make(map[string]interface{})
 
-  if !update {
-    if cur.Amount > 0 {
-      return false, nil
-    }else{
-      return true,nil
-    }
-  }else{
-    if cur.Amount ==  0 {
-      return false, nil
-    }else{
-      if cur.Amount == 1 {
-        cur.FetchOne(&result)
-        if result[key].(string) == value {
-          return true,nil
-        }else{
-          return false,nil
-        }
-      }else {
-        return false,nil
-      }
-    }
-	  return true, nil
-  }
+	if !update {
+		if cur.Amount > 0 {
+			return false, nil
+		} else {
+			return true, nil
+		}
+	} else {
+		if cur.Amount == 0 {
+			return false, nil
+		} else {
+			if cur.Amount == 1 {
+				cur.FetchOne(&result)
+				if result[key].(string) == value {
+					return true, nil
+				} else {
+					return false, nil
+				}
+			} else {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
 }
 
 // lSimple Queries
 func (c *Collection) All(skip, limit int) (*Cursor, error) {
 	var cur Cursor
-  if skip < 0 || limit < 0 {
-    return nil, errors.New("Invalid skip or limit")
-  }
+	if skip < 0 || limit < 0 {
+		return nil, errors.New("Invalid skip or limit")
+	}
 	query := map[string]interface{}{"collection": c.Name, "skip": skip, "limit": limit}
 	res, err := c.db.send("simple", "all", "PUT", query, &cur, &cur)
 
@@ -384,9 +383,9 @@ func (c *Collection) All(skip, limit int) (*Cursor, error) {
 //Simple query by example
 func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) {
 	var cur Cursor
-  if skip < 0 || limit < 0{
-    return nil, errors.New("Invalid skip or limit")
-  }
+	if skip < 0 || limit < 0 {
+		return nil, errors.New("Invalid skip or limit")
+	}
 	query := map[string]interface{}{"collection": c.Name, "example": doc, "skip": skip, "limit": limit}
 	res, err := c.db.send("simple", "by-example", "PUT", query, &cur, &cur)
 
@@ -419,15 +418,15 @@ func (c *Collection) First(example, doc interface{}) error {
 }
 
 //Coditional query using skiplist index
-func (c *Collection) ConditionSkipList(condition string,skip int,limit int,index string) (*Cursor,error){
+func (c *Collection) ConditionSkipList(condition string, skip int, limit int, index string) (*Cursor, error) {
 	var cur Cursor
-  if skip < 0 || limit < 0 {
-    return nil, errors.New("Invalid skip or limit")
-  }
-  if condition == ""{
-    return nil,errors.New("Invalid conditions")
-  }
-  query := map[string]interface{}{"collection": c.Name, "index" : index,"condition": condition, "skip": skip, "limit": limit}
+	if skip < 0 || limit < 0 {
+		return nil, errors.New("Invalid skip or limit")
+	}
+	if condition == "" {
+		return nil, errors.New("Invalid conditions")
+	}
+	query := map[string]interface{}{"collection": c.Name, "index": index, "condition": condition, "skip": skip, "limit": limit}
 	res, err := c.db.send("simple", "by-condition-skiplist", "PUT", query, &cur, &cur)
 
 	if err != nil {
@@ -442,15 +441,15 @@ func (c *Collection) ConditionSkipList(condition string,skip int,limit int,index
 }
 
 //Coditional query using bitarray index
-func (c *Collection) ConditionBitArray(condition string,skip int,limit int,index string) (*Cursor,error){
+func (c *Collection) ConditionBitArray(condition string, skip int, limit int, index string) (*Cursor, error) {
 	var cur Cursor
-  if skip < 0 || limit < 0 {
-    return nil, errors.New("Invalid skip or limit")
-  }
-  if condition == ""{
-    return nil,errors.New("Invalid conditions")
-  }
-  query := map[string]interface{}{"collection": c.Name, "index" : index,"condition": condition, "skip": skip, "limit": limit}
+	if skip < 0 || limit < 0 {
+		return nil, errors.New("Invalid skip or limit")
+	}
+	if condition == "" {
+		return nil, errors.New("Invalid conditions")
+	}
+	query := map[string]interface{}{"collection": c.Name, "index": index, "condition": condition, "skip": skip, "limit": limit}
 	res, err := c.db.send("simple", "by-condition-bitarray", "PUT", query, &cur, &cur)
 
 	if err != nil {
@@ -465,8 +464,8 @@ func (c *Collection) ConditionBitArray(condition string,skip int,limit int,index
 }
 
 //Return random number
-func (c *Collection) Any(doc interface{}) (error){
-  query := map[string]interface{}{"collection": c.Name }
+func (c *Collection) Any(doc interface{}) error {
+	query := map[string]interface{}{"collection": c.Name}
 	res, err := c.db.send("simple", "any", "PUT", query, &doc, &doc)
 
 	if err != nil {
@@ -481,130 +480,130 @@ func (c *Collection) Any(doc interface{}) (error){
 }
 
 //Get all indexs
-func (c *Collection) Indexes() (map[string]Index,error){
-    var indexes Indexes
-    _,err := c.db.get("index?collection="+c.Name,"","GET",nil,&indexes,&indexes)
-    if err != nil {
-        return indexes.IndexMap,err
-    }
+func (c *Collection) Indexes() (map[string]Index, error) {
+	var indexes Indexes
+	_, err := c.db.get("index?collection="+c.Name, "", "GET", nil, &indexes, &indexes)
+	if err != nil {
+		return indexes.IndexMap, err
+	}
 
-    return indexes.IndexMap,err
+	return indexes.IndexMap, err
 }
 
 // Delete Index
-func (c *Collection) DeleteIndex(id string) (error){
-    if id == "" {
-        return errors.New("Invalid id")
-    }
+func (c *Collection) DeleteIndex(id string) error {
+	if id == "" {
+		return errors.New("Invalid id")
+	}
 
-    res, err := c.db.get("index","id", "DELETE", nil, nil, nil)
-    if err != nil {
-        return err
-    }
+	res, err := c.db.get("index", "id", "DELETE", nil, nil, nil)
+	if err != nil {
+		return err
+	}
 
-    if res.Status() == 404 {
-        return errors.New("Index does not exist")
-    }
+	if res.Status() == 404 {
+		return errors.New("Index does not exist")
+	}
 
-    return nil
+	return nil
 }
 
 //Create cap constraint
-func (c *Collection) SetCap(size int64,bysize int64) error{
-    if size == 0 && bysize == 0 {
-        return errors.New("Invalid num and byte size")
-    }
+func (c *Collection) SetCap(size int64, bysize int64) error {
+	if size == 0 && bysize == 0 {
+		return errors.New("Invalid num and byte size")
+	}
 
-    if bysize > 0 && bysize < 16384 {
-        return errors.New("Invalid byte size, must be at least 16384")
-    }
+	if bysize > 0 && bysize < 16384 {
+		return errors.New("Invalid byte size, must be at least 16384")
+	}
 
-    capindex := map[string]interface{}{ "type" : "cap" , "size" : size , "byteSize" : bysize }
+	capindex := map[string]interface{}{"type": "cap", "size": size, "byteSize": bysize}
 
 	res, err := c.db.send("index?collection="+c.Name, "", "POST", &capindex, nil, nil)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    switch res.Status() {
-        case 400:
-            return errors.New("Invalid size or byte-size values")
-        case 404:
-            return errors.New("Collection does not exist")
-        default:
-            return nil
-    }
+	switch res.Status() {
+	case 400:
+		return errors.New("Invalid size or byte-size values")
+	case 404:
+		return errors.New("Collection does not exist")
+	default:
+		return nil
+	}
 }
 
-func (c *Collection) CreateHash(unique bool,fields ... string) error{
-    hashindex := map[string]interface{}{ "type" : "hash" , "unique" : unique , "fields" : fields }
+func (c *Collection) CreateHash(unique bool, fields ...string) error {
+	hashindex := map[string]interface{}{"type": "hash", "unique": unique, "fields": fields}
 
 	res, err := c.db.send("index?collection="+c.Name, "", "POST", &hashindex, nil, nil)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    switch res.Status() {
-        case 400:
-            return errors.New("There are documents violating the uniqueness")
-        case 404:
-            return errors.New("Collection does not exist")
-        default:
-            return nil
-    }
+	switch res.Status() {
+	case 400:
+		return errors.New("There are documents violating the uniqueness")
+	case 404:
+		return errors.New("Collection does not exist")
+	default:
+		return nil
+	}
 }
 
-func (c *Collection) CreateSkipList(unique bool,fields ... string) error{
-    skiplist := map[string]interface{}{ "type" : "skiplist" , "unique" : unique , "fields" : fields }
+func (c *Collection) CreateSkipList(unique bool, fields ...string) error {
+	skiplist := map[string]interface{}{"type": "skiplist", "unique": unique, "fields": fields}
 
 	res, err := c.db.send("index?collection="+c.Name, "", "POST", &skiplist, nil, nil)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    switch res.Status() {
-        case 400:
-            return errors.New("There are documents violating the uniqueness")
-        case 404:
-            return errors.New("Collection does not exist")
-        default:
-            return nil
-    }
+	switch res.Status() {
+	case 400:
+		return errors.New("There are documents violating the uniqueness")
+	case 404:
+		return errors.New("Collection does not exist")
+	default:
+		return nil
+	}
 }
 
-func (c *Collection) CreateGeoIndex(unique bool,geojson bool,fields ...string) error {
-    geoindex:= map[string]interface{}{ "type" : "geo" , "geoJson" : geojson ,"unique" : unique , "fields" : fields }
+func (c *Collection) CreateGeoIndex(unique bool, geojson bool, fields ...string) error {
+	geoindex := map[string]interface{}{"type": "geo", "geoJson": geojson, "unique": unique, "fields": fields}
 
 	res, err := c.db.send("index?collection="+c.Name, "", "POST", &geoindex, nil, nil)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    switch res.Status() {
-        case 400:
-            return errors.New("There are documents violating the uniqueness")
-        case 404:
-            return errors.New("Collection does not exist")
-        default:
-            return nil
-    }
+	switch res.Status() {
+	case 400:
+		return errors.New("There are documents violating the uniqueness")
+	case 404:
+		return errors.New("Collection does not exist")
+	default:
+		return nil
+	}
 }
 
-func (c *Collection) Near(lat float64,lon float64,distance bool,geo string,skip, limit int) (*Cursor, error) {
+func (c *Collection) Near(lat float64, lon float64, distance bool, geo string, skip, limit int) (*Cursor, error) {
 	var cur Cursor
-    if skip < 0 || limit < 0{
-        return nil, errors.New("Invalid skip or limit")
-    }
-    var query map[string]interface{}
-    if distance {
-        query = map[string]interface{}{"collection": c.Name, "latitude": lat ,"longitude": lon, "distance" : "distance", "skip": skip, "limit": limit}
-    }else{
-        query = map[string]interface{}{"collection": c.Name, "latitude": lat ,"longitude": lon, "skip": skip, "limit": limit}
-    }
+	if skip < 0 || limit < 0 {
+		return nil, errors.New("Invalid skip or limit")
+	}
+	var query map[string]interface{}
+	if distance {
+		query = map[string]interface{}{"collection": c.Name, "latitude": lat, "longitude": lon, "distance": "distance", "skip": skip, "limit": limit}
+	} else {
+		query = map[string]interface{}{"collection": c.Name, "latitude": lat, "longitude": lon, "skip": skip, "limit": limit}
+	}
 
-    if len(geo) > 0 {
-        query["geo"] = geo
-    }
+	if len(geo) > 0 {
+		query["geo"] = geo
+	}
 
 	res, err := c.db.send("simple", "near", "PUT", query, &cur, &cur)
 
@@ -619,22 +618,22 @@ func (c *Collection) Near(lat float64,lon float64,distance bool,geo string,skip,
 	}
 }
 
-func (c *Collection) WithIn(radius float64,lat float64,lon float64,distance bool,geo string,skip, limit int) (*Cursor, error) {
+func (c *Collection) WithIn(radius float64, lat float64, lon float64, distance bool, geo string, skip, limit int) (*Cursor, error) {
 	var cur Cursor
-    if skip < 0 || limit < 0{
-        return nil, errors.New("Invalid skip or limit")
-    }
-    var query map[string]interface{}
+	if skip < 0 || limit < 0 {
+		return nil, errors.New("Invalid skip or limit")
+	}
+	var query map[string]interface{}
 
-    if distance {
-        query = map[string]interface{}{"collection": c.Name, "radius" : radius,"latitude": lat ,"longitude": lon, "distance" : "distance", "skip": skip, "limit": limit}
-    }else{
-        query = map[string]interface{}{"collection": c.Name, "radius" : radius,"latitude": lat ,"longitude": lon, "skip": skip, "limit": limit}
-    }
+	if distance {
+		query = map[string]interface{}{"collection": c.Name, "radius": radius, "latitude": lat, "longitude": lon, "distance": "distance", "skip": skip, "limit": limit}
+	} else {
+		query = map[string]interface{}{"collection": c.Name, "radius": radius, "latitude": lat, "longitude": lon, "skip": skip, "limit": limit}
+	}
 
-    if len(geo) > 0 {
-        query["geo"] = geo
-    }
+	if len(geo) > 0 {
+		query["geo"] = geo
+	}
 
 	res, err := c.db.send("simple", "near", "PUT", query, &cur, &cur)
 
@@ -649,30 +648,29 @@ func (c *Collection) WithIn(radius float64,lat float64,lon float64,distance bool
 	}
 }
 
-func (c *Collection) CreateFullText(min int,fields ...string) error {
-    full := map[string]interface{}{ "type" : "fulltext" , "minLength" : min, "fields" : fields }
+func (c *Collection) CreateFullText(min int, fields ...string) error {
+	full := map[string]interface{}{"type": "fulltext", "minLength": min, "fields": fields}
 
 	res, err := c.db.send("index?collection="+c.Name, "", "POST", &full, nil, nil)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    switch res.Status() {
-        case 404:
-            return errors.New("Collection does not exist")
-        default:
-            return nil
-    }
+	switch res.Status() {
+	case 404:
+		return errors.New("Collection does not exist")
+	default:
+		return nil
+	}
 }
 
-
-func (c *Collection) FullText(q string,atr string,skip, limit int) (*Cursor, error) {
+func (c *Collection) FullText(q string, atr string, skip, limit int) (*Cursor, error) {
 	var cur Cursor
-    if skip < 0 || limit < 0{
-        return nil, errors.New("Invalid skip or limit")
-    }
+	if skip < 0 || limit < 0 {
+		return nil, errors.New("Invalid skip or limit")
+	}
 
-    query := map[string]interface{}{"collection": c.Name, "query": q,"attribute": atr, "skip": skip, "limit": limit}
+	query := map[string]interface{}{"collection": c.Name, "query": q, "attribute": atr, "skip": skip, "limit": limit}
 	res, err := c.db.send("simple", "fulltext", "PUT", query, &cur, &cur)
 
 	if err != nil {
@@ -687,15 +685,15 @@ func (c *Collection) FullText(q string,atr string,skip, limit int) (*Cursor, err
 }
 
 type Indexes struct {
-   Indexes  []Index
-   IndexMap map[string]Index  `json:"identifiers"`
+	Indexes  []Index
+	IndexMap map[string]Index `json:"identifiers"`
 }
 
 type Index struct {
-    Id          string `json:"id"`
-    Type        string `json:"type"`
-    Unique      bool   `json:"unique"`
-    MinLength   int    `json:"minLength"`
-    Fields      []string `json:"fields"`
-    Size        int64   `json:"size"`
+	Id        string   `json:"id"`
+	Type      string   `json:"type"`
+	Unique    bool     `json:"unique"`
+	MinLength int      `json:"minLength"`
+	Fields    []string `json:"fields"`
+	Size      int64    `json:"size"`
 }
