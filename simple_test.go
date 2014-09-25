@@ -2,7 +2,6 @@ package aranGO
 
 import (
 	"testing"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,27 +20,35 @@ func TestSimple(t *testing.T) {
 	c := db.Col(TestCollection)
 	assert.NotNil(t, c)
 
-	// Any
-	err = c.Any(&TestDoc)
-	assert.Equal(t, TestDoc.Error, false)
-	assert.Nil(t, err)
-
 	// Save
 	var saveTestDoc DocTest
-	saveTestDoc.Text = "Stringy string"
+	saveTestDoc.Text = TestString
 	err = c.Save(saveTestDoc)
 	assert.Nil(t, err)
 
+	// Any
+	TestDoc = DocTest{} // Clean TestDoc variable
+	err = c.Any(&TestDoc)
+	assert.Equal(t, TestDoc.Error, false)
+	assert.Equal(t, TestString, TestDoc.Text)
+
+	// First
+	TestDoc = DocTest{} // Clean TestDoc variable
+	err = c.First(map[string]interface{}{"Text": TestString}, &TestDoc)
+	assert.Equal(t, TestDoc.Error, false)
+	assert.Equal(t, TestString, TestDoc.Text)
+
 	// Example
-	cur, err := c.Example(map[string]interface{}{}, 0, 10)
+	TestDoc = DocTest{} // Clean TestDoc variable
+  cur, err := c.Example(map[string]interface{}{"Text" : TestString}, 0, 10)
 	assert.Equal(t, TestDoc.Error, false)
 	assert.Nil(t, err)
 	assert.NotNil(t, cur)
 
-	var newTestDoc DocTest
-	moreFiles := cur.FetchOne(&newTestDoc)
+	TestDoc = DocTest{} // Clean TestDoc variable
+	moreFiles := cur.FetchOne(&TestDoc)
 	assert.Equal(t, moreFiles, false)
-	assert.Equal(t, saveTestDoc.Text, newTestDoc.Text)
+	assert.Equal(t, TestString, TestDoc.Text)
 
 	// need to add new functions!
 
