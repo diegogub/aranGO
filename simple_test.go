@@ -2,7 +2,6 @@ package aranGO
 
 import (
 	"testing"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,6 +27,7 @@ func TestSimple(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Any
+	TestDoc = DocTest{} // Clean TestDoc variable
 	err = c.Any(&TestDoc)
 	assert.Equal(t, TestDoc.Error, false)
 	assert.Equal(t, TestString, TestDoc.Text)
@@ -39,7 +39,8 @@ func TestSimple(t *testing.T) {
 	assert.Equal(t, TestString, TestDoc.Text)
 
 	// Example
-	cur, err := c.Example(map[string]interface{}{}, 0, 10)
+	TestDoc = DocTest{} // Clean TestDoc variable
+  cur, err := c.Example(map[string]interface{}{"Text" : TestString}, 0, 10)
 	assert.Equal(t, TestDoc.Error, false)
 	assert.Nil(t, err)
 	assert.NotNil(t, cur)

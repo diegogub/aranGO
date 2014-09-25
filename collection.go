@@ -361,6 +361,12 @@ func (c *Collection) Unique(key string, value interface{}, update bool, index st
 }
 
 // lSimple Queries
+//helper structs
+type singleDoc struct {
+  Doc interface{} `json:"document"`
+}
+
+//
 func (c *Collection) All(skip, limit int) (*Cursor, error) {
 	var cur Cursor
 	if skip < 0 || limit < 0 {
@@ -402,9 +408,11 @@ func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) 
 
 // Returns first document in example query
 func (c *Collection) First(example, doc interface{}) error {
+  var d singleDoc
+  d.Doc = doc
 	query := map[string]interface{}{"collection": c.Name, "example": example}
 	// sernd request
-	res, err := c.db.send("simple", "first-example", "PUT", query, &doc, &doc)
+	res, err := c.db.send("simple", "first-example", "PUT", query, &d, &doc)
 
 	if err != nil {
 		return err
@@ -465,8 +473,10 @@ func (c *Collection) ConditionBitArray(condition string, skip int, limit int, in
 
 //Return random number
 func (c *Collection) Any(doc interface{}) error {
+  var d singleDoc
+  d.Doc = doc
 	query := map[string]interface{}{"collection": c.Name}
-	res, err := c.db.send("simple", "any", "PUT", query, &doc, &doc)
+	res, err := c.db.send("simple", "any", "PUT", query, &d, &doc)
 
 	if err != nil {
 		return err
