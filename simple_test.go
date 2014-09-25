@@ -21,16 +21,22 @@ func TestSimple(t *testing.T) {
 	c := db.Col(TestCollection)
 	assert.NotNil(t, c)
 
+	// Save
+	var saveTestDoc DocTest
+	saveTestDoc.Text = TestString
+	err = c.Save(saveTestDoc)
+	assert.Nil(t, err)
+
 	// Any
 	err = c.Any(&TestDoc)
 	assert.Equal(t, TestDoc.Error, false)
-	assert.Nil(t, err)
+	assert.Equal(t, TestString, TestDoc.Text)
 
-	// Save
-	var saveTestDoc DocTest
-	saveTestDoc.Text = "Stringy string"
-	err = c.Save(saveTestDoc)
-	assert.Nil(t, err)
+	// First
+	TestDoc = DocTest{} // Clean TestDoc variable
+	err = c.First(map[string]interface{}{"Text": TestString}, &TestDoc)
+	assert.Equal(t, TestDoc.Error, false)
+	assert.Equal(t, TestString, TestDoc.Text)
 
 	// Example
 	cur, err := c.Example(map[string]interface{}{}, 0, 10)
@@ -38,10 +44,10 @@ func TestSimple(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, cur)
 
-	var newTestDoc DocTest
-	moreFiles := cur.FetchOne(&newTestDoc)
+	TestDoc = DocTest{} // Clean TestDoc variable
+	moreFiles := cur.FetchOne(&TestDoc)
 	assert.Equal(t, moreFiles, false)
-	assert.Equal(t, saveTestDoc.Text, newTestDoc.Text)
+	assert.Equal(t, TestString, TestDoc.Text)
 
 	// need to add new functions!
 

@@ -7,6 +7,7 @@ var (
 	TestDbName     = ""
 	TestUsername   = ""
 	TestPassword   = ""
+	TestString     = "test string"
 	verbose        = false
 	TestServer     = "http://localhost:8529"
 	s              *Session
