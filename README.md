@@ -4,32 +4,31 @@ aranGO
 go get github.com/diegogub/aranGO
 ~~~
 Golang driver for ArangoDB.
-It's under development, and I had not time to finish the documentation.
 
 Here are the things you can do until now:
 
   * Databases : create
   * Collections : drop, create, list, truncate
   * Documents : save, replace,patch, query (simple query,AQL,Transactions)
-  * Edges : Relate documents, save, patch, replace 
+  * Edges : Relate documents, save, patch, replace
   * Execute transactions
   * Execute AQL
+  * Replication config
 
-
-
-I'm planning to cover all functionalities after stable 2.2.0 realease, hopefully next week
+Additional Features
+-------------------
+  * Minimal Models with hooks
+  * AqlBuilder ( https://gowalker.org/github.com/diegogub/aranGO#AqlStruct , check Filter, it has some nice JSON2AQL filter feature. If you have any suggestion about JSON format and new ideas to improve it feel free to write me or pull-request :P )
 
 Any ideas for the driver or bug fixes please feel free to create a issue or pull-request to dev :)
 
-
 Documentation
-============
+-------------
 
 https://gowalker.org/github.com/diegogub/aranGO
 
-
 Basic Usage
-===========
+-----------
 ~~~~
 import ara "github.com/diegogub/aranGO"
 
@@ -41,8 +40,8 @@ type DocTest struct {
 }
 ~~~~
 
-Connecting and creating collections
-===================================
+Connect and create collections
+-----------------------------------
 ~~~
     //change false to true if you want to see every http request
     //Connect(host, user, password string, log bool) (*Session, error) {
@@ -74,7 +73,7 @@ Connecting and creating collections
 ~~~~
 
 Create and Relate documents
-===========================
+---------------------------
 ~~~
   var d1,d2 DocTest
   d1.Name = "Diego"
@@ -111,7 +110,7 @@ Create and Relate documents
 ~~~
 
 AQL
-===
+---
 
 ~~~
 // query query 
@@ -128,8 +127,9 @@ AQL
 
 ~~~
 
+
 Transactions
-===
+------------
 
 ~~~
 // saving document with transaction
@@ -163,5 +163,87 @@ func TranSave(db *ara.Database,doc interface{},col string,counter string) (*ara.
   err := t.Execute(db)
 
   return t,err
+}
+~~~
+
+Models
+------
+To be a model, any struct must implement Modeler Interface.
+
+~~~
+type Modeler interface {
+    // Returns current model key
+    GetKey() string
+    // Returns collection where I should save the model
+    GetCollection() string
+    // Error
+    GetError() (string, bool)
+}
+~~~
+
+Implement Modeler and add tags to struct..
+~~~
+
+type DocTest struct {
+  ara.Document // Must include arango Document in every struct you want to save id, key, rev after saving it
+// required tag for strings.
+  Name     string `required:"-"`
+// unique tag validate within collection users, if username is unique
+  Username string `unique:"users"`
+// enum tag checks string value
+  Type     string `enum:"A,M,S"`
+// Next release I will be implementing some other tags to validate int
+and arrays
+  Age      int
+  Likes    []string
+}
+
+func (d *DocTest) GetKey() string{
+  return d.Key
+}
+
+func (d *DocTest) GetCollection() string {
+  return "testcollection"
+}
+
+func (d *DocTest) GetError()(string,error){
+    // default error bool and messages. Could be any kind of error
+    return d.Message,d.Error
+}
+
+// pass ArangoDB database as context
+ctx, err :=  NewContext(db)
+
+// save model, returns map of errors or empty map
+e := ctx.Save(d1)
+
+// check errors, also Error is saved in Context struct
+if len(e) > 1 {
+  panic(e)
+}
+
+// get other document
+d2.Key = "d2key"
+ctx.Get(d2)
+log.Println(d2)
+
+~~~
+
+
+We can implement hooks to execute when saving,updating or deleting
+model..
+~~~
+// execute before saving
+func (d *DocTest) PreSave(c *ara.Context) {
+   var e error
+  // Any extra validation
+  // ......
+  // ......
+  if e != nil {
+    // errors should be set into context struct
+    c.Err["presave"] = "failed to validate doctest"
+  }
+
+  return
 }
 ~~~
