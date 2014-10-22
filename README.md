@@ -17,8 +17,8 @@ Here are the things you can do until now:
 
 Additional Features
 -------------------
-  * Models with hooks
-  * AqlBuilder ( https://gowalker.org/github.com/diegogub/aranGO#AqlStruct , check Filter, it has some nice JSON2AQL filter feature, I'm open suggestions about JSON format and new ideas to improve it :P )
+  * Minimal Models with hooks
+  * AqlBuilder ( https://gowalker.org/github.com/diegogub/aranGO#AqlStruct , check Filter, it has some nice JSON2AQL filter feature. If you have any suggestion about JSON format and new ideas to improve it feel free to write me or pull-request :P )
 
 Any ideas for the driver or bug fixes please feel free to create a issue or pull-request to dev :)
 
@@ -26,7 +26,6 @@ Documentation
 -------------
 
 https://gowalker.org/github.com/diegogub/aranGO
-
 
 Basic Usage
 -----------
