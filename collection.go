@@ -8,11 +8,10 @@ import (
 
 // Options to create collection
 type CollectionOptions struct {
-	Name    string `json:"name"`
-	Type    uint   `json:"type"`
-	Sync    bool   `json:"waitForSync,omitempty"`
-	Compact bool   `json:"doCompact,omitempty"`
-	//Cannot create with custom journal? TODO
+	Name        string                 `json:"name"`
+	Type        uint                   `json:"type"`
+	Sync        bool                   `json:"waitForSync,omitempty"`
+	Compact     bool                   `json:"doCompact,omitempty"`
 	JournalSize int                    `json:"journalSize,omitempty"`
 	System      bool                   `json:"isSystem,omitempty"`
 	Volatile    bool                   `json:"isVolatile,omitempty"`
@@ -41,14 +40,45 @@ func (opt *CollectionOptions) IsDocument() {
 	return
 }
 
+// Sets always-sync to true
 func (opt *CollectionOptions) MustSync() {
 	opt.Sync = true
 	return
 }
 
+// Sets if collection must be Volatile.
 func (opt *CollectionOptions) IsVolatile() {
 	opt.Volatile = true
 	return
+}
+
+// Sets custom journal size
+func (opt *CollectionOptions) Journal(size int) {
+	if size <= 0 {
+		size = 1
+	}
+	// convert to kb
+	size = size * 1024 * 1024
+	opt.JournalSize = size
+}
+
+// Sets the number of shards for a collection
+func (opt *CollectionOptions) Shard(num int) {
+	if num <= 0 {
+		num = 1
+	}
+
+	opt.Shards = num
+}
+
+func (opt *CollectionOptions) ShardKey(keys []string) {
+	if len(keys) == 0 {
+		return
+	}
+	if opt.ShardKeys == nil {
+		opt.ShardKeys = make([]string, 0)
+	}
+	opt.ShardKeys = keys
 }
 
 // Basic Collection struct
@@ -363,7 +393,7 @@ func (c *Collection) Unique(key string, value interface{}, update bool, index st
 // lSimple Queries
 //helper structs
 type singleDoc struct {
-  Doc interface{} `json:"document"`
+	Doc interface{} `json:"document"`
 }
 
 //
@@ -408,8 +438,8 @@ func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) 
 
 // Returns first document in example query
 func (c *Collection) First(example, doc interface{}) error {
-  var d singleDoc
-  d.Doc = doc
+	var d singleDoc
+	d.Doc = doc
 	query := map[string]interface{}{"collection": c.Name, "example": example}
 	// sernd request
 	res, err := c.db.send("simple", "first-example", "PUT", query, &d, &doc)
@@ -473,8 +503,8 @@ func (c *Collection) ConditionBitArray(condition string, skip int, limit int, in
 
 //Return random number
 func (c *Collection) Any(doc interface{}) error {
-  var d singleDoc
-  d.Doc = doc
+	var d singleDoc
+	d.Doc = doc
 	query := map[string]interface{}{"collection": c.Name}
 	res, err := c.db.send("simple", "any", "PUT", query, &d, &doc)
 
