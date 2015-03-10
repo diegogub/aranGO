@@ -1,8 +1,8 @@
 package aranGO
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestSimple(t *testing.T) {
@@ -10,10 +10,13 @@ func TestSimple(t *testing.T) {
 	s, err := Connect(TestServer, TestUsername, TestPassword, verbose)
 	assert.Nil(t, err)
 
+	dbs1, _ := s.AllDBs()
 	// Create the db
 	s.CreateDB(TestDbName, nil)
 	defer s.DropDB(TestDbName)
 
+	dbs2, _ := s.AllDBs()
+	assert.True(t, (len(dbs2)-len(dbs1)) == 1)
 	db := s.DB(TestDbName)
 	assert.NotNil(t, db)
 
@@ -40,7 +43,7 @@ func TestSimple(t *testing.T) {
 
 	// Example
 	TestDoc = DocTest{} // Clean TestDoc variable
-  cur, err := c.Example(map[string]interface{}{"Text" : TestString}, 0, 10)
+	cur, err := c.Example(map[string]interface{}{"Text": TestString}, 0, 10)
 	assert.Equal(t, TestDoc.Error, false)
 	assert.Nil(t, err)
 	assert.NotNil(t, cur)
