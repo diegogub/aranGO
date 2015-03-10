@@ -70,6 +70,27 @@ func Connect(host, user, password string, log bool) (*Session, error) {
 
 }
 
+func (s *Session) AllDBs() ([]string, error) {
+	var dbs Databases
+	request := s.host + "/_api/database/user"
+	res, err := s.nap.Get(request, nil, &dbs, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	switch res.Status() {
+	case 200:
+		return dbs.List, nil
+	case 400:
+		return nil, errors.New("Invalid request")
+	case 404:
+		return nil, errors.New("Database not found")
+	default:
+		return nil, errors.New("Invalid error code")
+	}
+}
+
 // Show current database
 func (s *Session) CurrentDB() (*Database, error) {
 	var db auxCurrentDB
