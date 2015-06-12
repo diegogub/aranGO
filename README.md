@@ -106,7 +106,7 @@ Create and Relate documents
   }
   
   // Relate documents
-  s.DB("test").Col("ed").Relate(d1.Key,d2.Key,map[string]interface{ "is" : "friend" })
+  s.DB("test").Col("ed").Relate(d1.Id,d2.Id,map[string]interface{}{ "is" : "friend" })
 ~~~
 
 AQL
