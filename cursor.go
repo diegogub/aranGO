@@ -3,6 +3,7 @@ package aranGO
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"reflect"
 	"time"
 )
@@ -87,19 +88,7 @@ func (c *Cursor) FetchBatch(r interface{}) error {
 // Iterates over cursor, returns false when no more values into batch, fetch next batch if necesary.
 func (c *Cursor) FetchOne(r interface{}) bool {
 	var max int = len(c.Result) - 1
-
-	if c.Index < max {
-		b, err := json.Marshal(c.Result[c.Index])
-		err = json.Unmarshal(b, r)
-		c.Index++ // move to next value into result
-		if err != nil {
-			return false
-		} else {
-			return true
-		}
-	}
-	// Last document
-	if c.Index == max {
+	if c.Index >= max {
 		b, err := json.Marshal(c.Result[c.Index])
 		err = json.Unmarshal(b, r)
 		if err != nil {
@@ -125,9 +114,20 @@ func (c *Cursor) FetchOne(r interface{}) bool {
 				return false
 			}
 		}
+	} else {
+		b, err := json.Marshal(c.Result[c.Index])
+		err = json.Unmarshal(b, r)
+		c.Index++ // move to next value into result
+		if c.Index == max {
+			log.Println("index--->", c.Index)
+		}
+		if err != nil {
+			log.Println(err)
+			return false
+		} else {
+			return true
+		}
 	}
-
-	return false
 }
 
 // move cursor index by 1
