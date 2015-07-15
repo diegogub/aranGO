@@ -3,7 +3,6 @@ package aranGO
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"reflect"
 	"time"
 )
@@ -119,10 +118,8 @@ func (c *Cursor) FetchOne(r interface{}) bool {
 		err = json.Unmarshal(b, r)
 		c.Index++ // move to next value into result
 		if c.Index == max {
-			log.Println("index--->", c.Index)
 		}
 		if err != nil {
-			log.Println(err)
 			return false
 		} else {
 			return true
