@@ -100,7 +100,7 @@ func (s *Session) AvailableDBs() ([]string, error) {
 		return nil, errors.New("invalid db")
 	}
 
-	res, err := db.get("database", "user", "GET", nil, nil, nil)
+	res, err := db.get("database", "user", "GET", nil, &dbs, &dbs)
 	if err != nil {
 		return nil, err
 	}
