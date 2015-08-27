@@ -128,7 +128,7 @@ func (c *Cursor) FetchOne(r interface{}) bool {
 }
 
 // move cursor index by 1
-func (c *Cursor) Next(r interface{}) bool {
+func (c *Cursor) Next() bool {
 	if c.Index == c.max {
 		return false
 	} else {
