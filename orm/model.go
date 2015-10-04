@@ -1,8 +1,9 @@
-package aranGO
+package orm
 
 import (
 	"encoding/json"
 	"errors"
+	"github.com/diegogub/aranGO"
 	"reflect"
 	"strings"
 	"sync"
@@ -20,7 +21,7 @@ func NewError() Error {
 // Context to share state between hook and track transaction state
 type Context struct {
 	Keys map[string]interface{}
-	Db   *Database
+	Db   *aranGO.Database
 	Err  Error
 }
 

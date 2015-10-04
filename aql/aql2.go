@@ -1,4 +1,4 @@
-package aranGO
+package aql
 
 import (
 	"encoding/json"
@@ -208,13 +208,6 @@ func (aq *AqlStruct) Generate() string {
 func NewAqlStruct() *AqlStruct {
 	var aq AqlStruct
 	return &aq
-}
-
-//Execute AqlStuct into database
-func (aq *AqlStruct) Execute(db *Database) (*Cursor, error) {
-	q := NewQuery(aq.Generate())
-	c, err := db.Execute(q)
-	return c, err
 }
 
 // Returns sub struct with same var context

@@ -2,6 +2,7 @@ package aranGO
 
 import (
 	"errors"
+	"github.com/diegogub/aranGO/aql"
 	nap "github.com/diegogub/napping"
 	"regexp"
 	"time"
@@ -27,7 +28,7 @@ type DatabaseResult struct {
 */
 
 // Execute AQL query into server and returns cursor struct
-func (d *Database) Execute(q *Query) (*Cursor, error) {
+func (d *Database) Execute(q *aql.Query) (*Cursor, error) {
 	if q == nil {
 		return nil, errors.New("Cannot execute nil query")
 	} else {
@@ -77,7 +78,7 @@ func (d *Database) ExecuteTran(t *Transaction) error {
 	return nil
 }
 
-func (d *Database) IsValid(q *Query) bool {
+func (d *Database) IsValid(q *aql.Query) bool {
 	if q != nil {
 		res, err := d.send("query", "", "POST", map[string]string{"query": q.Aql}, q, q)
 		if err != nil {

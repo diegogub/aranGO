@@ -1,4 +1,4 @@
-package aranGO
+package aql
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ func reflectValue(obj interface{}) reflect.Value {
 	return val
 }
 
-func subParse(i map[string]interface{}, doc interface{}) error {
+func SubParse(i map[string]interface{}, doc interface{}) error {
 	b, err := json.Marshal(i)
 	if err != nil {
 		return err

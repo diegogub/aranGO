@@ -2,6 +2,7 @@ package aranGO
 
 import (
 	"errors"
+	"github.com/diegogub/aranGO/aql"
 )
 
 // Graph structure
@@ -72,7 +73,7 @@ func (g *Graph) ReplaceE(col string, key string, doc interface{}, patch interfac
 	var gr graphObj
 
 	res, err := g.db.send("gharial", g.Name+"/edge/"+col+"/"+key, "PUT", patch, &gr, &gr)
-	subParse(gr.V, doc)
+	aql.SubParse(gr.V, doc)
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func (g *Graph) PatchE(col string, key string, doc interface{}, patch interface{
 
 	var gr graphObj
 	res, err := g.db.send("gharial", g.Name+"/edge/"+col+"/"+key, "PATCH", patch, &gr, &gr)
-	subParse(gr.E, doc)
+	aql.SubParse(gr.E, doc)
 	if err != nil {
 		return err
 	}
@@ -119,7 +120,7 @@ func (g *Graph) GetE(col string, key string, edge interface{}) error {
 	}
 	var gr graphObj
 	res, err := g.db.get("gharial", g.Name+"/edge/"+col+"/"+key, "GET", nil, &gr, &gr)
-	subParse(gr.E, edge)
+	aql.SubParse(gr.E, edge)
 
 	if err != nil {
 		return err
@@ -142,7 +143,7 @@ func (g *Graph) E(col string, edge interface{}) error {
 	}
 	var gr graphObj
 	res, err := g.db.send("gharial", g.Name+"/edge/"+col, "POST", edge, &gr, &gr)
-	subParse(gr.E, edge)
+	aql.SubParse(gr.E, edge)
 
 	if err != nil {
 		return err
@@ -188,7 +189,7 @@ func (g *Graph) ReplaceV(col string, key string, doc interface{}, patch interfac
 	var gr graphObj
 
 	res, err := g.db.send("gharial", g.Name+"/vertex/"+col+"/"+key, "PUT", patch, &gr, &gr)
-	subParse(gr.V, doc)
+	aql.SubParse(gr.V, doc)
 	if err != nil {
 		return err
 	}
@@ -212,7 +213,7 @@ func (g *Graph) PatchV(col string, key string, doc interface{}, patch interface{
 
 	var gr graphObj
 	res, err := g.db.send("gharial", g.Name+"/vertex/"+col+"/"+key, "PATCH", patch, &gr, &gr)
-	subParse(gr.V, doc)
+	aql.SubParse(gr.V, doc)
 	if err != nil {
 		return err
 	}
@@ -235,7 +236,7 @@ func (g *Graph) V(col string, doc interface{}) error {
 	}
 	var gr graphObj
 	res, err := g.db.send("gharial", g.Name+"/vertex/"+col, "POST", doc, &gr, &gr)
-	subParse(gr.V, doc)
+	aql.SubParse(gr.V, doc)
 	if err != nil {
 		return err
 	}
@@ -258,7 +259,7 @@ func (g *Graph) GetV(col string, key string, doc interface{}) error {
 	// workaround nested vertex
 	var gr graphObj
 	res, err := g.db.get("gharial", g.Name+"/vertex/"+col+"/"+key, "GET", nil, &gr, &gr)
-	subParse(gr.V, doc)
+	aql.SubParse(gr.V, doc)
 	if err != nil {
 		return err
 	}
