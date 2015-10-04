@@ -107,7 +107,7 @@ type Query struct {
 	//Optional values Batch    int                    `json:"batchSize,omitempty"`
 	Count    bool                   `json:"count,omitempty"`
 	BindVars map[string]interface{} `json:"bindVars,omitempty"`
-	Options  map[string]interface{} `json:"options,omitempty"`
+	Options  *QueryOptions          `json:"options,omitempty"`
 	// opetions fullCount bool
 	// Note that the fullCount sub-attribute will only be present in the result if the query has a LIMIT clause and the LIMIT clause is actually used in the query.
 	// Control
@@ -118,7 +118,6 @@ type Query struct {
 func NewQuery(query string) *Query {
 	var q Query
 	// alocate maps
-	q.Options = make(map[string]interface{})
 	q.BindVars = make(map[string]interface{})
 
 	if query == "" {
@@ -127,6 +126,10 @@ func NewQuery(query string) *Query {
 		q.Aql = query
 		return &q
 	}
+}
+
+func (q *Query) AddBind(name string, val interface{}) {
+	q.BindVars[name] = val
 }
 
 func (q *Query) Modify(query string) error {
@@ -142,6 +145,36 @@ func (q *Query) Modify(query string) error {
 func (q *Query) MustCheck() {
 	q.Validate = true
 	return
+}
+
+func (q *Query) SetFullCount(count bool) {
+	if q.Options == nil {
+		var qopt QueryOptions
+		qopt.FullCount = count
+		q.Options = &qopt
+	} else {
+		q.Options.FullCount = count
+	}
+}
+
+func (q *Query) SetMaxPLans(count int) {
+	if q.Options == nil {
+		var qopt QueryOptions
+		qopt.MaxPlans = count
+		q.Options = &qopt
+	} else {
+		q.Options.MaxPlans = count
+	}
+}
+
+type QueryOptions struct {
+	FullCount bool          `json:"fullCount"`
+	MaxPlans  int           `json:"maxPlans,omitempty"`
+	OptRules  OptimizeRules `json:"optimizer,omitempty"`
+}
+
+type OptimizeRules struct {
+	Rules []string `json:"rules,omitempty"`
 }
 
 type AqlStructer interface {

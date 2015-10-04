@@ -55,7 +55,13 @@ func (c *Cursor) Delete() error {
 }
 
 func (c *Cursor) FetchBatch(r interface{}) error {
-	kind := reflect.ValueOf(r).Elem().Kind()
+	var kind reflect.Kind
+	if reflect.TypeOf(r).Kind() != reflect.Ptr {
+		kind = reflect.ValueOf(r).Kind()
+	} else {
+		kind = reflect.ValueOf(r).Elem().Kind()
+	}
+
 	if kind != reflect.Slice && kind != reflect.Array {
 		return errors.New("Container must be Slice of array kind")
 	}
@@ -91,7 +97,7 @@ func (c *Cursor) FetchOne(r interface{}) bool {
 		b, err := json.Marshal(c.Result[c.Index])
 		err = json.Unmarshal(b, r)
 		if err != nil {
-			return false
+			panic(err)
 		} else {
 			if c.More {
 				//fetch rest from server
@@ -142,15 +148,23 @@ func (c *Cursor) Next() bool {
 }
 
 type Extra struct {
-	FullCount int `json:"fullCount"`
+	Stat Stats `json:"stats"`
+}
+
+type Stats struct {
+	WritesExecuted int    `json:"writesExecuted"`
+	WritesIgnored  int    `json:"writesIgnored"`
+	ScannedFull    int    `json:"scannedFull"`
+	FullCount      uint64 `json:"fullCount"`
+	ScannedIndex   int    `json:"scannedIndex"`
 }
 
 func (c Cursor) Count() int {
 	return c.Amount
 }
 
-func (c *Cursor) FullCount() int {
-	return c.Data.FullCount
+func (c *Cursor) FullCount() uint64 {
+	return c.Data.Stat.FullCount
 }
 
 func (c Cursor) HasMore() bool {
