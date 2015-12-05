@@ -509,8 +509,8 @@ func (db *Database) Graph(name string) *Graph {
 	if name == "" {
 		return nil
 	}
-	_, err := db.get("gharial", name, "GET", nil, &g, &g)
-	if err != nil {
+	res, err := db.get("gharial", name, "GET", nil, &g, &g)
+	if err != nil || res.Status() != 200 {
 		return nil
 	}
 	// set DB
