@@ -2,11 +2,11 @@ package aranGO
 
 // Configure to start testing
 var (
-	TestCollection = ""
+	TestCollection = "TestCollection"
 	TestDoc        DocTest
-	TestDbName     = ""
-	TestUsername   = ""
-	TestPassword   = ""
+	TestDbName     = "TestDbName"
+	TestUsername   = "TestUsername"
+	TestPassword   = "TestPassword"
 	TestString     = "test string"
 	verbose        = false
 	TestServer     = "http://localhost:8529"
