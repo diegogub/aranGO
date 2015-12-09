@@ -129,6 +129,10 @@ func NewQuery(query string) *Query {
 	}
 }
 
+func (q *Query) SetFullCount(count bool) {
+	q.Options["fullCount"] = count
+}
+
 func (q *Query) Modify(query string) error {
 	if query == "" {
 		return errors.New("query must not be empty")
