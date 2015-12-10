@@ -71,7 +71,6 @@ func (c *Cursor) FetchBatch(r interface{}) error {
 	// fetch next batch
 	if c.HasMore() {
 		res, err := c.db.send("cursor", c.Id, "PUT", nil, c, c)
-
 		if res.Status() == 200 {
 			return nil
 		}
@@ -142,6 +141,10 @@ func (c *Cursor) Next(r interface{}) bool {
 }
 
 type Extra struct {
+	Stats Stats `json:"stats"`
+}
+
+type Stats struct {
 	FullCount int `json:"fullCount"`
 }
 
@@ -150,7 +153,7 @@ func (c Cursor) Count() int {
 }
 
 func (c *Cursor) FullCount() int {
-	return c.Data.FullCount
+	return c.Data.Stats.FullCount
 }
 
 func (c Cursor) HasMore() bool {
