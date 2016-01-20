@@ -150,6 +150,8 @@ func (col *Collection) Save(doc interface{}) error {
 		return errors.New("Invalid document json")
 	case 404:
 		return errors.New("Collection does not exist")
+	case 409:
+		return errors.New("Unique constraint violated")
 	default:
 		return nil
 	}
