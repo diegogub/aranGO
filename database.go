@@ -2,8 +2,8 @@ package aranGO
 
 import (
 	"errors"
-	"github.com/diegogub/aranGO/aql"
 	nap "github.com/diegogub/napping"
+	"gopkg.in/diegogub/aranGO.v2/aql"
 	"regexp"
 	"time"
 )
