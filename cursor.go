@@ -94,6 +94,10 @@ func (c *Cursor) FetchBatch(r interface{}) error {
 func (c *Cursor) FetchOne(r interface{}) bool {
 	var max int = len(c.Result) - 1
 	if c.Index >= max {
+		if len(c.Result) == 0 {
+			return false
+		}
+
 		b, err := json.Marshal(c.Result[c.Index])
 		err = json.Unmarshal(b, r)
 		if err != nil {
