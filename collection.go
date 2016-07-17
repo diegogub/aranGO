@@ -3,6 +3,7 @@ package aranGO
 // TODO Must Implement revision control
 import (
 	"errors"
+
 	nap "github.com/diegogub/napping"
 )
 
@@ -335,11 +336,15 @@ func Collections(db *Database) error {
 	var err error
 	var res *nap.Response
 
+	var cols struct {
+		Result []Collection `json:"result"`
+	}
 	// get all non-system collections
-	res, err = db.get("collection?excludeSystem=true", "", "GET", nil, db, db)
+	res, err = db.get("collection?excludeSystem=true", "", "GET", nil, &cols, db)
 	if err != nil {
 		return err
 	}
+	db.Collections = cols.Result
 
 	if res.Status() == 200 {
 		return nil
