@@ -2,10 +2,10 @@ package aranGO
 
 import (
 	"errors"
-	nap "github.com/diegogub/napping"
-	"gopkg.in/diegogub/aranGO.v2/aql"
 	"regexp"
 	"time"
+
+	"gopkg.in/diegogub/aranGO.v2/aql"
 )
 
 // Database struct
@@ -96,9 +96,9 @@ func (d *Database) IsValid(q *aql.Query) bool {
 }
 
 // Do a request to test if the database is up and user authorized to use it
-func (d *Database) get(resource string, id string, method string, param *nap.Params, result, err interface{}) (*nap.Response, error) {
+func (d *Database) get(resource string, id string, method string, param map[string]string, result, err interface{}) (*response, error) {
 	url := d.buildRequest(resource, id)
-	var r *nap.Response
+	var r *response
 	var e error
 
 	switch method {
@@ -115,9 +115,9 @@ func (d *Database) get(resource string, id string, method string, param *nap.Par
 	return r, e
 }
 
-func (d *Database) send(resource string, id string, method string, payload, result, err interface{}) (*nap.Response, error) {
+func (d *Database) send(resource string, id string, method string, payload, result, err interface{}) (*response, error) {
 	url := d.buildRequest(resource, id)
-	var r *nap.Response
+	var r *response
 	var e error
 
 	switch method {

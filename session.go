@@ -2,15 +2,13 @@ package aranGO
 
 import (
 	"errors"
-	nap "github.com/diegogub/napping"
-	"net/url"
 	"regexp"
 )
 
 type Session struct {
 	host string
 	safe bool
-	nap  *nap.Session
+	nap  *httpClient
 	dbs  Databases
 }
 
@@ -32,18 +30,12 @@ type auxCurrentDB struct {
 // Connects to Database
 func Connect(host, user, password string, log bool) (*Session, error) {
 	var sess Session
-	var s nap.Session
+	var s *httpClient
 	var dbs Databases
 	var err error
 	var request string
-	s.Log = log
-	// default unsafe
-	s.UnsafeBasicAuth = true
 
-	if user != "" {
-		s.Userinfo = url.UserPassword(user, password)
-	}
-
+	s = newHTTPClient(user, password, log)
 	request = host + "/_db/_system/_api/version"
 	resp, err := s.Get(request, nil, nil, nil)
 	if err != nil {
@@ -61,7 +53,7 @@ func Connect(host, user, password string, log bool) (*Session, error) {
 		if err != nil {
 			return nil, err
 		}
-		sess.nap = &s
+		sess.nap = s
 		sess.host = host
 		return &sess, nil
 	default:
