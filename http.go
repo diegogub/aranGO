@@ -208,6 +208,16 @@ func logFunc(ctx *c.Context, req *http.Request, res *http.Response, reqBody, res
 		}
 		if strings.Contains(file, "diegogub/aranGO") && !strings.Contains(file, "diegogub/aranGO/http.go") {
 			log.Printf("Caller: %s:%d", filepath.Base(file), line)
+			for i++; ; i++ {
+				_, file, line, ok := runtime.Caller(i)
+				if !ok {
+					break
+				}
+				if !strings.Contains(file, "diegogub/aranGO") {
+					break
+				}
+				log.Printf("Caller: %s:%d", filepath.Base(file), line)
+			}
 			break
 		}
 	}
