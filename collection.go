@@ -3,6 +3,7 @@ package aranGO
 // TODO Must Implement revision control
 import (
 	"errors"
+
 	nap "github.com/diegogub/napping"
 )
 
@@ -340,6 +341,16 @@ func Collections(db *Database) error {
 	}
 
 	if res.Status() == 200 {
+		var result struct {
+			Result []Collection `json:"result"`
+		}
+		if err = res.Unmarshal(&result); err != nil {
+			return err
+		}
+		for i, _ := range result.Result {
+			result.Result[i].db = db
+			db.Collections = append(db.Collections, result.Result[i])
+		}
 		return nil
 	} else {
 		return errors.New("Failed to retrieve collections from Database")
