@@ -2,6 +2,7 @@ package aranGO
 
 import (
 	"errors"
+	"io/ioutil"
 	"time"
 )
 
@@ -34,6 +35,18 @@ func NewTransaction(q string, write []string, read []string) *Transaction {
 		t.Collections["read"] = read
 	}
 	return &t
+}
+
+func (t *Transaction) FromFile(path string) error {
+	var err error
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	t.Action = string(b)
+
+	return err
 }
 
 func (t *Transaction) Execute(db *Database) error {
