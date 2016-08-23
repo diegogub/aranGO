@@ -1,11 +1,7 @@
 package aranGO
 
 // TODO Must Implement revision control
-import (
-	"errors"
-
-	nap "github.com/diegogub/napping"
-)
+import "errors"
 
 // Options to create collection
 type CollectionOptions struct {
@@ -130,7 +126,7 @@ func (col *Collection) Count() int64 {
 // Save saves doc into collection, doc should have Document Embedded to retrieve error and Key later.
 func (col *Collection) Save(doc interface{}) error {
 	var err error
-	var res *nap.Response
+	var res *response
 
 	if col.Type == 2 {
 		res, err = col.db.send("document?collection="+col.Name, "", "POST", doc, &doc, &doc)
@@ -161,7 +157,7 @@ func (col *Collection) Save(doc interface{}) error {
 // Save Edge into Edges collection
 func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 	var err error
-	var res *nap.Response
+	var res *response
 
 	if col.Type == 3 {
 		res, err = col.db.send("edge?collection="+col.Name+"&from="+from+"&to="+to, "", "POST", doc, &doc, &doc)
@@ -243,7 +239,7 @@ func (col *Collection) Get(key string, doc interface{}) error {
 // Replace document
 func (col *Collection) Replace(key string, doc interface{}) error {
 	var err error
-	var res *nap.Response
+	var res *response
 
 	if key == "" {
 		return errors.New("Key must not be empty")
@@ -275,7 +271,7 @@ func (col *Collection) Replace(key string, doc interface{}) error {
 
 func (col *Collection) Patch(key string, doc interface{}) error {
 	var err error
-	var res *nap.Response
+	var res *response
 
 	if key == "" {
 		return errors.New("Key must not be empty")
@@ -307,7 +303,7 @@ func (col *Collection) Patch(key string, doc interface{}) error {
 
 func (col *Collection) Delete(key string) error {
 	var err error
-	var res *nap.Response
+	var res *response
 
 	if key == "" {
 		return errors.New("Key must not be empty")
@@ -334,7 +330,7 @@ func (col *Collection) Delete(key string) error {
 // Get list of collections from any database
 func Collections(db *Database) error {
 	var err error
-	var res *nap.Response
+	var res *response
 
 	var cols struct {
 		Result []Collection `json:"result"`
