@@ -28,6 +28,7 @@ func NewTransaction(q string, write []string, read []string) *Transaction {
 	var t Transaction
 	t.Collections = make(map[string][]string)
 	t.Action = q
+	t.Params = make(map[string]interface{})
 	if write != nil {
 		t.Collections["write"] = write
 	}
