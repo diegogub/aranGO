@@ -5,6 +5,8 @@ import (
 	"regexp"
 )
 
+var DefaultDB string = "_system"
+
 type Session struct {
 	host string
 	safe bool
@@ -27,6 +29,11 @@ type auxCurrentDB struct {
 	Db Database `json:"result"`
 }
 
+//Sets default Database
+func SetDefaultDB(db string) {
+	DefaultDB = db
+}
+
 // Connects to Database
 func Connect(host, user, password string, log bool) (*Session, error) {
 	var sess Session
@@ -36,23 +43,20 @@ func Connect(host, user, password string, log bool) (*Session, error) {
 	var request string
 
 	s = newHTTPClient(user, password, log)
-	request = host + "/_db/_system/_api/version"
-	resp, err := s.Get(request, nil, nil, nil)
+	request = host + "/_db/" + DefaultDB + "/_api/database/user"
+	resp, err := s.Get(request, nil, &dbs, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Invalid host or auth data to connect")
 	}
 
+	if len(dbs.List) == 0 {
+		return nil, errors.New("Invalid default dabase, no access . Try setting one with : aranGO.SetDefaultDB(db string)")
+	}
+
+	sess.dbs.List = dbs.List
 	// check if 200
 	switch resp.Status() {
 	case 200:
-		// load Databases
-		request = host + "/_api/database/user"
-		_, err = s.Get(request, nil, &dbs, nil)
-		sess.dbs.List = dbs.List
-
-		if err != nil {
-			return nil, err
-		}
 		sess.nap = s
 		sess.host = host
 		return &sess, nil
@@ -86,7 +90,7 @@ func (s *Session) AllDBs() ([]string, error) {
 // Show current database
 func (s *Session) CurrentDB() (*Database, error) {
 	var db auxCurrentDB
-	sdb := s.DB("_system")
+	sdb := s.DB(DefaultDB)
 
 	res, err := sdb.get("database", "current", "GET", nil, &db, &db)
 	if err != nil {
@@ -108,7 +112,7 @@ func (s *Session) CurrentDB() (*Database, error) {
 // List available databases
 func (s *Session) AvailableDBs() ([]string, error) {
 	var dbs Databases
-	db := s.DB("_system")
+	db := s.DB(DefaultDB)
 	if db == nil {
 		return nil, errors.New("invalid db")
 	}
