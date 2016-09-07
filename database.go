@@ -2,10 +2,9 @@ package aranGO
 
 import (
 	"errors"
+	"gopkg.in/diegogub/aranGO.v2/aql"
 	"regexp"
 	"time"
-
-	"gopkg.in/diegogub/aranGO.v2/aql"
 )
 
 // Database struct
