@@ -83,41 +83,31 @@ func (c *Cursor) FetchBatch(r interface{}) error {
 	return nil
 }
 
-// Iterates over cursor, returns false when no more values into batch, fetch next batch if necesary.
+// FetchOne iterates over cursor, returns false when no more values into batch, fetch next batch if necesary.
 func (c *Cursor) FetchOne(r interface{}) bool {
-	var max int = len(c.Result) - 1
-	if c.Index >= max {
-		b, err := json.Marshal(c.Result[c.Index])
-		err = json.Unmarshal(b, r)
-		if err != nil {
-			return false
-		} else {
-			if c.More {
-				//fetch rest from server
-				res, _ := c.db.send("cursor", c.Id, "PUT", nil, c, c)
+	if c.Index > c.max {
+		if c.More {
+			//fetch rest from server
+			res, err := c.db.send("cursor", c.Id, "PUT", nil, c, c)
 
-				if err != nil {
-					return false
-				}
-
-				if res.Status() == 200 {
-					c.Index = 0
-					return true
-				} else {
-					return false
-				}
-
-			} else {
-				// last doc
+			if err != nil {
 				return false
 			}
+
+			if res.Status() == 200 {
+				c.Index = 0
+				return true
+			} else {
+				return false
+			}
+		} else {
+			// last doc
+			return false
 		}
 	} else {
 		b, err := json.Marshal(c.Result[c.Index])
 		err = json.Unmarshal(b, r)
 		c.Index++ // move to next value into result
-		if c.Index == max {
-		}
 		if err != nil {
 			return false
 		} else {
