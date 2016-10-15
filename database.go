@@ -2,7 +2,7 @@ package aranGO
 
 import (
 	"errors"
-	"gopkg.in/diegogub/aranGO.v2/aql"
+	"aranGO/aql"
 	"regexp"
 	"time"
 )
@@ -116,18 +116,28 @@ func (d *Database) get(resource string, id string, method string, param map[stri
 
 func (d *Database) send(resource string, id string, method string, payload, result, err interface{}) (*response, error) {
 	url := d.buildRequest(resource, id)
-	var r *response
-	var e error
 
 	switch method {
 	case "POST":
-		r, e = d.sess.nap.Post(url, payload, result, err)
+		return d.sess.nap.Post(url, payload, result, err)
 	case "PUT":
-		r, e = d.sess.nap.Put(url, payload, result, err)
+		return d.sess.nap.Put(url, payload, result, err)
 	case "PATCH":
-		r, e = d.sess.nap.Patch(url, payload, result, err)
+		return d.sess.nap.Patch(url, payload, result, err)
 	}
-	return r, e
+	return nil, errors.New("Not supported")
+}
+
+func (d *Database) batchSend(resource string, id string, method string, payloads, results, errs []interface{}) ([]response, error) {
+	url := d.buildRequest(resource, id)
+	batchUrl := d.buildRequest("batch", "")
+	
+	switch method {
+	case "POST":
+		return d.sess.nap.BatchPost(url, batchUrl, payloads, results, errs)
+	}
+	
+	return nil, errors.New("Not supported")
 }
 
 func (db Database) buildRequest(t string, id string) string {
@@ -143,28 +153,31 @@ func (db Database) buildRequest(t string, id string) string {
 // Col returns Collection attached to current Database
 func (db Database) Col(name string) *Collection {
 	var col Collection
-	var found bool
-	// need to validate this more
-	for _, c := range db.Collections {
-		if c.Name == name {
-			col = c
-			col.db = &db
-			found = true
+	var err error
+	
+	for i := 0 ; i < 3 ; i++ {	
+		// need to validate this more
+		for _, c := range db.Collections {
+			if c.Name == name {
+				col = c
+				col.db = &db
+				return &col
+			}
+		}
+		if db.sess.safe {
 			break
 		}
+		
+		var col CollectionOptions
+		col.Name = name
+		err = db.CreateCollection(&col)
 	}
-
-	if !found {
-		if db.sess.safe {
-			panic("Collection " + name + " not found")
-		} else {
-			var col CollectionOptions
-			col.Name = name
-			db.CreateCollection(&col)
-			return db.Col(name)
-		}
+	
+	errMsg := "Collection " + name + " not found"
+	if err != nil {
+		errMsg += " and cannot be created: " + err.Error()
 	}
-	return &col
+	panic(errMsg)
 }
 
 func validColName(name string) error {
