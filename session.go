@@ -50,7 +50,7 @@ func Connect(host, user, password string, log bool) (*Session, error) {
 	}
 
 	if len(dbs.List) == 0 {
-		return nil, errors.New("Invalid default dabase, no access . Try setting one with : aranGO.SetDefaultDB(db string)")
+		return nil, errors.New("Invalid default database, no access. Try setting one with : aranGO.SetDefaultDB(db string)")
 	}
 
 	sess.dbs.List = dbs.List
@@ -99,7 +99,7 @@ func (s *Session) CurrentDB() (*Database, error) {
 
 	switch res.Status() {
 	case 200:
-		return &db.Db, nil
+		return sdb, nil
 	case 400:
 		return nil, errors.New("Invalid request")
 	case 404:
