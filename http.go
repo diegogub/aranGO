@@ -1,23 +1,23 @@
 package aranGO
 
 import (
-	"io"
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"log"
 	"errors"
-	
+	"fmt"
+	"io"
+	"log"
+
 	"path/filepath"
 	"runtime"
-	"strings"
 	"strconv"
-	
+	"strings"
+
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"net/textproto"
+	"net/url"
 
 	genlog "github.com/hnakamur/gentleman-log"
 	"gopkg.in/h2non/gentleman.v1"
@@ -119,12 +119,12 @@ func (c *httpClient) send(r *request) (*response, error) {
 	if r.payload != nil {
 		genReq = genReq.JSON(r.payload)
 	}
-	
+
 	genRes, err := genReq.Send()
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %v", err)
 	}
-	
+
 	b := genRes.Bytes()
 	if b != nil {
 		err = saveResponse(bytes.NewReader(b), genRes.StatusCode, r)
@@ -156,13 +156,13 @@ func saveResponse(reader io.Reader, statusCode int, r *request) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 func (c *httpClient) BatchPost(url, batchUrl string, payloads, results, errs []interface{}) ([]response, error) {
 	requests := make([]request, 0, len(payloads))
-	
+
 	for idx, _ := range payloads {
 		// Errors and results are saved to the payload
 		requests = append(requests, request{
@@ -173,7 +173,7 @@ func (c *httpClient) BatchPost(url, batchUrl string, payloads, results, errs []i
 			errMsg:  &errs[idx],
 		})
 	}
-	
+
 	return c.sendBatch(batchUrl, requests)
 }
 
@@ -183,24 +183,24 @@ func (c *httpClient) sendBatch(batchUrl string, requests []request) ([]response,
 	if len(requests) == 0 {
 		return nil, errors.New("Empty requests sequence")
 	}
-	
+
 	// Generate multipart data for the array of requests
 	data := bytes.NewBuffer([]byte{})
 	httpRequests, err := generateBatchRequests(data, requests)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Setup HTTP request and send it
 	genReq := c.cli.Request().Method("POST").URL(batchUrl)
-	genReq.SetHeader("Content-Type", "multipart/form-data; boundary=" + batchRequestBoundary)
+	genReq.SetHeader("Content-Type", "multipart/form-data; boundary="+batchRequestBoundary)
 	genReq.Body(data)
-	
+
 	genRes, err := genReq.Send()
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %v", err)
 	}
-	
+
 	if genRes.StatusCode >= http.StatusMultipleChoices {
 		// We failed to process batch of requests, notify every requestor
 		// (we shouldn't get multipart response in this case)
@@ -213,7 +213,7 @@ func (c *httpClient) sendBatch(batchUrl string, requests []request) ([]response,
 		}
 		return nil, fmt.Errorf("failed to process request: %v", err)
 	}
-	
+
 	// Parse multipart response
 	httpResponses := make([]response, 0, len(requests))
 	mpReader := multipart.NewReader(bytes.NewReader(genRes.Bytes()), batchRequestBoundary)
@@ -222,7 +222,7 @@ func (c *httpClient) sendBatch(batchUrl string, requests []request) ([]response,
 		if err == io.EOF {
 			break
 		}
-		
+
 		contentId, err := strconv.Atoi(part.Header.Get("Content-Id"))
 		if contentId > len(httpRequests) || contentId <= 0 {
 			err = errors.New("out of range")
@@ -230,22 +230,22 @@ func (c *httpClient) sendBatch(batchUrl string, requests []request) ([]response,
 		if err != nil {
 			return nil, fmt.Errorf("failed to process response, invalid Content-Id: %v", err)
 		}
-		
+
 		httpResponse, err := http.ReadResponse(bufio.NewReader(part), httpRequests[contentId-1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to process response: %v", err)
 		}
-		
+
 		saveResponse(httpResponse.Body, httpResponse.StatusCode, &requests[contentId-1])
 		httpResponses = append(httpResponses, response{rawResponse: httpResponse})
 	}
-	
+
 	return httpResponses, nil
 }
 
 func generateBatchRequests(data *bytes.Buffer, requests []request) ([]*http.Request, error) {
 	httpRequests := make([]*http.Request, 0, len(requests))
-	
+
 	mpWriter := multipart.NewWriter(data)
 	mpWriter.SetBoundary(batchRequestBoundary)
 	for contentId, r := range requests {
@@ -253,15 +253,15 @@ func generateBatchRequests(data *bytes.Buffer, requests []request) ([]*http.Requ
 		if err != nil {
 			return nil, fmt.Errorf("failed to create multi-part: %v", err)
 		}
-		
+
 		httpRequests = append(httpRequests, httpRequest)
 	}
-	
+
 	err := mpWriter.Close()
 	if err != nil {
 		return nil, fmt.Errorf("failed to close multi-part: %v", err)
 	}
-	
+
 	return httpRequests, nil
 }
 
@@ -272,7 +272,7 @@ func generateBatchUrl(r *request) *url.URL {
 	if err != nil {
 		return nil
 	}
-	
+
 	if r.params != nil {
 		query := url.Query()
 		for key, value := range r.params {
@@ -280,10 +280,10 @@ func generateBatchUrl(r *request) *url.URL {
 		}
 		url.RawQuery = query.Encode()
 	}
-	
+
 	url.Scheme = ""
 	url.Host = ""
-	
+
 	return url
 }
 
@@ -291,25 +291,25 @@ func writeMultiPartRequest(mp *multipart.Writer, contentId int, r *request) (*ht
 	header := make(textproto.MIMEHeader)
 	header.Add("Content-Type", "application/x-arango-batchpart")
 	header.Add("Content-Id", strconv.Itoa(contentId))
-	
+
 	pw, err := mp.CreatePart(header)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req := &http.Request{
-		Method: r.method,
-		URL: generateBatchUrl(r),
+		Method:     r.method,
+		URL:        generateBatchUrl(r),
 		ProtoMajor: 1,
 		ProtoMinor: 1,
 	}
 	req.Write(pw)
-	
+
 	if r.payload != nil {
-		jsonEncoder := json.NewEncoder(pw) 
+		jsonEncoder := json.NewEncoder(pw)
 		jsonEncoder.Encode(r.payload)
 	}
-	
+
 	return req, nil
 }
 
@@ -350,14 +350,14 @@ func logBody(label, contentType string, body []byte) (err error) {
 	out := bytes.NewBufferString(label)
 	if len(body) > 0 {
 		out.WriteByte('\n')
-		
+
 		if strings.HasPrefix(contentType, "application/json") {
 			err = json.Indent(out, body, "", "  ")
 		} else {
 			out.Write(body)
 		}
 	}
-	
+
 	if err == nil {
 		log.Println(out.String())
 	}
@@ -370,7 +370,7 @@ func logFunc(ctx *c.Context, req *http.Request, res *http.Response, reqBody, res
 	log.Println("--------------------------------------------------------------------------------")
 	log.Printf("%s %s", req.Method, req.URL)
 	logHeader(req.Header)
-	
+
 	err := logBody("Payload:", req.Header.Get("Content-Type"), reqBody)
 	if err != nil {
 		return err

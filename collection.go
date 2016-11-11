@@ -154,11 +154,11 @@ func (col *Collection) Save(doc interface{}) error {
 	}
 }
 
-func (col* Collection) BatchSave(docs []interface{}) error {
+func (col *Collection) BatchSave(docs []interface{}) error {
 	if col.Type != 2 {
 		return errors.New("Trying to save documents into EdgeCollection")
 	}
-	
+
 	payloads := make([]interface{}, 0, len(docs))
 	results := make([]interface{}, 0, len(docs))
 	errs := make([]interface{}, 0, len(docs))
@@ -167,9 +167,9 @@ func (col* Collection) BatchSave(docs []interface{}) error {
 		results = append(results, &docs[idx])
 		errs = append(errs, &docs[idx])
 	}
-	
+
 	// TODO: decode errors
-	_, err := col.db.batchSend("document?collection="+col.Name, "", "POST", payloads, results, errs)	
+	_, err := col.db.batchSend("document?collection="+col.Name, "", "POST", payloads, results, errs)
 	return err
 }
 
@@ -720,7 +720,7 @@ func (c *Collection) CreateFullText(min int, fields ...string) error {
 
 	switch res.Status() {
 	case 400:
-		return errors.New("Invalid full-text field or length")	
+		return errors.New("Invalid full-text field or length")
 	case 404:
 		return errors.New("Collection does not exist")
 	default:
