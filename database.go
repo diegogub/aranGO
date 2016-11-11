@@ -2,7 +2,7 @@ package aranGO
 
 import (
 	"errors"
-	"aranGO/aql"
+	"gopkg.in/diegogub/aranGO.v2/aql"
 	"regexp"
 	"time"
 )
@@ -131,12 +131,12 @@ func (d *Database) send(resource string, id string, method string, payload, resu
 func (d *Database) batchSend(resource string, id string, method string, payloads, results, errs []interface{}) ([]response, error) {
 	url := d.buildRequest(resource, id)
 	batchUrl := d.buildRequest("batch", "")
-	
+
 	switch method {
 	case "POST":
 		return d.sess.nap.BatchPost(url, batchUrl, payloads, results, errs)
 	}
-	
+
 	return nil, errors.New("Not supported")
 }
 
@@ -154,8 +154,8 @@ func (db Database) buildRequest(t string, id string) string {
 func (db Database) Col(name string) *Collection {
 	var col Collection
 	var err error
-	
-	for i := 0 ; i < 3 ; i++ {	
+
+	for i := 0; i < 3; i++ {
 		// need to validate this more
 		for _, c := range db.Collections {
 			if c.Name == name {
@@ -167,12 +167,12 @@ func (db Database) Col(name string) *Collection {
 		if db.sess.safe {
 			break
 		}
-		
+
 		var col CollectionOptions
 		col.Name = name
 		err = db.CreateCollection(&col)
 	}
-	
+
 	errMsg := "Collection " + name + " not found"
 	if err != nil {
 		errMsg += " and cannot be created: " + err.Error()
