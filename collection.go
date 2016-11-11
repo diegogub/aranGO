@@ -333,7 +333,7 @@ func Collections(db *Database) error {
 	var res *response
 
 	var cols struct {
-		Result []Collection `json:"collections"`
+		Result []Collection `json:"result"`
 	}
 	// get all non-system collections
 	res, err = db.get("collection?excludeSystem=true", "", "GET", nil, &cols, db)
