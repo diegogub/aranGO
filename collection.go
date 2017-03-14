@@ -157,12 +157,15 @@ func (col *Collection) Save(doc interface{}) error {
 }
 
 // Save Edge into Edges collection
-func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
+func (col *Collection) SaveEdge(doc map[string]interface{}, from string, to string) error {
 	var err error
 	var res *nap.Response
+	
+	doc["_from"] = from
+	doc["_to"] = to
 
 	if col.Type == 3 {
-		res, err = col.db.send("edge?collection="+col.Name+"&from="+from+"&to="+to, "", "POST", doc, &doc, &doc)
+		res, err = col.db.send("document?collection="+col.Name, "", "POST", doc, &doc, &doc)
 	} else {
 		return errors.New("Trying to save document into Edge-Collection")
 	}
@@ -206,12 +209,15 @@ func (col *Collection) Edges(start string, direction string, result interface{})
 }
 
 // Relate documents in edge collection
-func (col *Collection) Relate(from string, to string, label interface{}) error {
+func (col *Collection) Relate(from string, to string, label  map[string]interface{}) error {
 	if col.Type == 2 {
 		return errors.New("Invalid collection to add Edge: " + col.Name)
 	}
 	if from == "" || to == "" {
 		return errors.New("from or to documents don't exist")
+	}
+	if label == nil {
+	    label = make(map[string]interface{})
 	}
 
 	return col.SaveEdge(label, from, to)
