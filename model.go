@@ -255,9 +255,9 @@ func Unique(m interface{}, db *Database, update bool, err Error) {
 				c := db.Col(col)
 				jname := Tag(m, fname, "json")
 				if jname != "" {
-					uniq, _ = c.Unique(jname, field.String(), update, "")
+					uniq, _ = c.Unique(jname, field.Interface(), update, "")
 				} else {
-					uniq, _ = c.Unique(fname, field.String(), update, "")
+					uniq, _ = c.Unique(fname, field.Interface(), update, "")
 				}
 			}
 			if !uniq {
@@ -278,9 +278,9 @@ func unique(m reflect.Value, val map[string]string, db *Database, uniq *bool, up
 				// search by example
 				jname := Tag(m, fname, "json")
 				if jname != "" {
-					*uniq, _ = db.Col(col).Unique(jname, field.String(), update, "")
+					*uniq, _ = db.Col(col).Unique(jname, field.Interface(), update, "")
 				} else {
-					*uniq, _ = db.Col(col).Unique(fname, field.String(), update, "")
+					*uniq, _ = db.Col(col).Unique(fname, field.Interface(), update, "")
 				}
 			}
 			if !*uniq {
