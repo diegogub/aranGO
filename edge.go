@@ -42,7 +42,7 @@ func (db *Database) Edges(edgeCol string, startVertex string, direction string) 
 	}
 
 	var eresp edgesResponce
-	res, err := db.get("edges", uri, "get", nil, &eresp, &eresp)
+	res, err := db.get("edges", uri, "GET", nil, &eresp, &eresp)
 	if err != nil {
 		return nil, err
 	}
