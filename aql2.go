@@ -129,6 +129,29 @@ func NewQuery(query string) *Query {
 	}
 }
 
+func NewQueryWithVars(query string, vars map[string]interface{}) *Query {
+	var q Query
+	// alocate maps
+	q.Options = make(map[string]interface{})
+	q.BindVars = make(map[string]interface{})
+
+	// set bind vars
+	if vars != nil {
+		q.setVars(vars)
+	}
+
+	if query == "" {
+		return &q
+	} else {
+		q.Aql = query
+		return &q
+	}
+}
+
+func (q *Query) setVars(vars map[string]interface{}) {
+	q.BindVars = vars
+}
+
 func (q *Query) SetFullCount(count bool) {
 	q.Options["fullCount"] = count
 }
@@ -1010,3 +1033,4 @@ func genValue(v interface{}) string {
 	}
 	return q
 }
+
