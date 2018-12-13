@@ -29,7 +29,7 @@ https://gowalker.org/github.com/diegogub/aranGO
 
 Basic Usage
 -----------
-~~~~
+~~~~go
 import ara "github.com/diegogub/aranGO"
 
 type DocTest struct {
@@ -42,7 +42,7 @@ type DocTest struct {
 
 Connect and create collections
 -----------------------------------
-~~~
+~~~go
     //change false to true if you want to see every http request
     //Connect(host, user, password string, log bool) (*Session, error) {
     s,err := ara.Connect("http://localhost:8529","diego","test",false) 
@@ -74,7 +74,7 @@ Connect and create collections
 
 Create and Relate documents
 ---------------------------
-~~~
+~~~go
   var d1,d2 DocTest
   d1.Name = "Diego"
   d1.Age = 22
@@ -112,7 +112,7 @@ Create and Relate documents
 AQL
 ---
 
-~~~
+~~~go
 // query query 
   q := ara.NewQuery("FOR i in docs1 RETURN i")
   c ,err:=s.DB("test").Execute(q)
@@ -131,7 +131,7 @@ AQL
 Transactions
 ------------
 
-~~~
+~~~go
 // saving document with transaction
 func TranSave(db *ara.Database,doc interface{},col string,counter string) (*ara.Transaction,error){
   if  col == "" || counter == ""{
@@ -170,7 +170,7 @@ Models
 ------
 To be a model, any struct must implement Modeler Interface.
 
-~~~
+~~~go
 type Modeler interface {
     // Returns current model key
     GetKey() string
@@ -182,7 +182,7 @@ type Modeler interface {
 ~~~
 
 Implement Modeler and add tags to struct..
-~~~
+~~~go
 
 type DocTest struct {
   ara.Document // Must include arango Document in every struct you want to save id, key, rev after saving it
@@ -232,7 +232,7 @@ log.Println(d2)
 
 We can implement hooks to execute when saving,updating or deleting
 model..
-~~~
+~~~go
 // execute before saving
 func (d *DocTest) PreSave(c *ara.Context) {
    var e error
