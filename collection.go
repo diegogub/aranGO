@@ -18,10 +18,10 @@ type CollectionOptions struct {
 	Volatile    bool                   `json:"isVolatile,omitempty"`
 	Keys        map[string]interface{} `json:"keyOptions,omitempty"`
 	// Count
-	Count int64 `json:"count"`
+	Count int64 					   `json:"count"`
 	// Cluster
-	Shards    int      `json:"numberOfShards,omitempty"`
-	ShardKeys []string `json:"shardKeys,omitempty"`
+	Shards    int      				   `json:"numberOfShards,omitempty"`
+	ShardKeys []string 				   `json:"shardKeys,omitempty"`
 }
 
 func NewCollectionOptions(name string, sync bool) *CollectionOptions {
