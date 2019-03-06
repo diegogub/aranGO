@@ -30,7 +30,7 @@ type ReplicationInventory struct {
 	Tick        string           `json:"tick"`
 }
 
-// Returns replication inventory
+// Inventory returns replication inventory
 func (db *Database) Inventory() (*ReplicationInventory, error) {
 	var rinv ReplicationInventory
 

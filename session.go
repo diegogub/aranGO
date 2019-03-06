@@ -193,7 +193,7 @@ func (s *Session) DropDB(name string) error {
 	}
 }
 
-// Return database
+// DB returns database
 func (s *Session) DB(name string) *Database {
 	var db Database
 	var found bool

@@ -142,7 +142,7 @@ func (q *Query) Modify(query string) error {
 	}
 }
 
-// Validate query before execution
+// MustCheck validates query before execution
 func (q *Query) MustCheck() {
 	q.Validate = true
 	return
@@ -464,7 +464,7 @@ func (aqf AqlFilter) Generate() string {
 	return code
 }
 
-// Returns AqlFilter parsing valid json string
+// FilterJSON returns AqlFilter parsing valid json string
 func FilterJSON(s string) AqlFilter {
 	var aqf AqlFilter
 	json.Unmarshal([]byte(s), &aqf)
@@ -499,7 +499,7 @@ type Filter struct {
 	*/
 }
 
-// Returns filter , comparing with value
+// Fil returns filter , comparing with value
 func Fil(atr string, oper string, i interface{}) Filter {
 	var f Filter
 	f.AtrR = atr
@@ -508,7 +508,7 @@ func Fil(atr string, oper string, i interface{}) Filter {
 	return f
 }
 
-// Returns filter , comparing 2 fields
+// FilField returns filter , comparing 2 fields
 func FilField(atr string, oper string, i string) Filter {
 	var f Filter
 	f.AtrR = atr

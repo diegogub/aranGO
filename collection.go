@@ -179,7 +179,7 @@ func (col *Collection) SaveEdge(doc interface{}, from string, to string) error {
 
 }
 
-//Get vertex relations
+//Edges gets vertex relations
 func (col *Collection) Edges(start string, direction string, result interface{}) error {
 	if start == "" {
 		return errors.New("Invalid start vertex")
@@ -329,7 +329,7 @@ func (col *Collection) Delete(key string) error {
 	}
 }
 
-// Get list of collections from any database
+// Collections gets list of collections from any database
 func Collections(db *Database) error {
 	var err error
 	var res *nap.Response
@@ -357,7 +357,7 @@ func Collections(db *Database) error {
 	}
 }
 
-// check if a key is unique
+// Unique checks if a key is unique
 func (c *Collection) Unique(key string, value interface{}, update bool, index string) (bool, error) {
 	var cur *Cursor
 	var err error
@@ -447,7 +447,7 @@ func (c *Collection) Example(doc interface{}, skip, limit int) (*Cursor, error) 
 	}
 }
 
-// Returns first document in example query
+// First returns first document in example query
 func (c *Collection) First(example, doc interface{}) error {
 	var d singleDoc
 	d.Doc = doc
@@ -512,7 +512,7 @@ func (c *Collection) ConditionBitArray(condition string, skip int, limit int, in
 	}
 }
 
-//Return random number
+//Any returns random number
 func (c *Collection) Any(doc interface{}) error {
 	var d singleDoc
 	d.Doc = doc
@@ -530,7 +530,7 @@ func (c *Collection) Any(doc interface{}) error {
 	}
 }
 
-//Get all indexs
+//Indexes gets all indexs
 func (c *Collection) Indexes() (map[string]Index, error) {
 	var indexes Indexes
 	_, err := c.db.get("index?collection="+c.Name, "", "GET", nil, &indexes, &indexes)
