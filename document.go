@@ -30,7 +30,7 @@ func NewDocument(id string) (*Document, error) {
 	return &d, nil
 }
 
-// Return map[string]string of document instead of struct
+// Map returns map[string]string of document instead of struct
 func (d *Document) Map(db *Database) (map[string]string, error) {
 	var m map[string]string
 	sid := strings.Split(d.Id, "/")
@@ -53,7 +53,7 @@ func (d *Document) SetRev(rev string) error {
 	return nil
 }
 
-// Check if a document was updated
+// Updated checks if a document was updated
 func (d *Document) Updated(db *Database) (bool, error) {
 	if db == nil {
 		return false, errors.New("Invalid db")
@@ -79,7 +79,7 @@ func (d *Document) Updated(db *Database) (bool, error) {
 	}
 }
 
-// Check if document exist
+// Exist checks if document exist
 func (d *Document) Exist(db *Database) (bool, error) {
 
 	if db == nil {

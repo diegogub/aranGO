@@ -42,7 +42,7 @@ func (g *Graph) Traverse(t *Traversal, r interface{}) error {
 	}
 }
 
-// Remove Vertex
+// RemoveE removes Vertex
 func (g *Graph) RemoveE(col string, key string) error {
 	if col == "" || key == "" {
 		return errors.New("Invalid key or collection")
@@ -64,7 +64,7 @@ func (g *Graph) RemoveE(col string, key string) error {
 	}
 }
 
-//Replace edge
+//ReplaceE replaces edge
 func (g *Graph) ReplaceE(col string, key string, doc interface{}, patch interface{}) error {
 	if col == "" || key == "" {
 		return errors.New("Invalid key or collection")
@@ -112,7 +112,7 @@ func (g *Graph) PatchE(col string, key string, doc interface{}, patch interface{
 	}
 }
 
-// Get Edge
+// GetE gets Edge
 func (g *Graph) GetE(col string, key string, edge interface{}) error {
 	if col == "" || key == "" {
 		return errors.New("Invalid collection or key value")
@@ -158,7 +158,7 @@ func (g *Graph) E(col string, edge interface{}) error {
 	}
 }
 
-// Remove Vertex
+// RemoveV removes Vertex
 func (g *Graph) RemoveV(col string, key string) error {
 	if col == "" || key == "" {
 		return errors.New("Invalid key or collection")
@@ -180,7 +180,7 @@ func (g *Graph) RemoveV(col string, key string) error {
 	}
 }
 
-//Replace vertex
+//ReplaceV replaces vertex
 func (g *Graph) ReplaceV(col string, key string, doc interface{}, patch interface{}) error {
 	if col == "" || key == "" {
 		return errors.New("Invalid key or collection")
@@ -250,7 +250,7 @@ func (g *Graph) V(col string, doc interface{}) error {
 	}
 }
 
-//Gets Vertex from collection
+//GetV gets Vertex from collection
 func (g *Graph) GetV(col string, key string, doc interface{}) error {
 	if key == "" || col == "" {
 		return errors.New("Invalid key or collection to get")
@@ -276,7 +276,7 @@ func (g *Graph) GetV(col string, key string, doc interface{}) error {
 
 }
 
-// Remove vertex collections
+// RemoveVertexCol removes vertex collections
 func (g *Graph) RemoveVertexCol(col string) error {
 	if g.db == nil {
 		return errors.New("Invalid db")
@@ -300,7 +300,7 @@ func (g *Graph) RemoveVertexCol(col string) error {
 	}
 }
 
-// Remove edge
+// RemoveEdgeDef removes edge
 func (g *Graph) RemoveEdgeDef(col string) error {
 	if g.db == nil {
 		return errors.New("Invalid db")
@@ -324,7 +324,7 @@ func (g *Graph) RemoveEdgeDef(col string) error {
 	}
 }
 
-// Add vertex collections
+// AddVertexCol adds vertex collections
 func (g *Graph) AddVertexCol(col string) error {
 	if g.db == nil {
 		return errors.New("Invalid db")
