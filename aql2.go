@@ -285,7 +285,7 @@ func (aq *AqlStruct) Return(view interface{}) *AqlStruct {
 // Could be use like:
 //        - Filter(custom ... string)
 //            example:
-//                Filter("u.name == 'Diego' && u.age > 20")
+//                Filter("u.name == 'Diego' && u.age > 21")
 //                out:
 //                    FILTER u.name == 'Diego' && u.age > 21
 //        - Filter(key string,fil ... Filter || AqlFunction, any bool)
@@ -314,7 +314,7 @@ func (aq *AqlStruct) Return(view interface{}) *AqlStruct {
 //                FILTER u.status == 'P' || u.status == 'A'
 //            Filter(`{ "key" : "u" , "filters": [{ "name": "id", "op": "==", "field": "adm.id" },{ "name": "status", "op": "eq", "val":"A"}], "any" : true }`)
 //            out:
-//                Filter(`{ "key" : "u" , "filters": [{ "name": "id", "op": "==", "field": "adm.id" },{ "name": "status", "op": "eq", "val":"A"}], "any" : true }`)
+//                FILTER u.id == adm.id || u.status == 'A'
 func (aq *AqlStruct) Filter(f ...interface{}) *AqlStruct {
 	// no parameters
 	if len(f) == 0 {
