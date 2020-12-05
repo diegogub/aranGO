@@ -1,0 +1,27 @@
+box: golang
+services:
+  - id: arangodb
+    env: 
+      ARANGO_NO_AUTH: 1
+build:
+  steps:
+    - install-packages:
+        packages: netcat
+    - setup-go-workspace:
+        package-dir: github.com/diegogub/aranGO
+    - script:
+        name: go get
+        code: |
+          go get -t
+    - script:
+        name: go build
+        code: |
+          go build ./...
+    - script: 
+        name: Wait for Arangodb connection if it is slow
+        code: | 
+          while ! nc -nvz $ARANGODB_PORT_8529_TCP_ADDR $ARANGODB_PORT_8529_TCP_PORT ; do echo "."; sleep 2; done
+    - script:
+        name: go test
+        code: |
+          go test ./...
